@@ -31,8 +31,8 @@ let activeRequest: AbortController | null = null
 
 const currentModule = computed(() => {
   const path = route.path.replace(/\/$/, '')
-  if (path === '/wall') return undefined
-  return Object.values(status.value?.modules ?? {}).find(item => item.route === (path === '/wall/replay' ? '/wall' : path))
+  if (path === '/wall' || path === '/wall/replay') return undefined
+  return Object.values(status.value?.modules ?? {}).find(item => item.route === (path === '/wall/replay/tools' ? '/wall' : path))
 })
 const incompleteModules = computed(() => Object.values(status.value?.modules ?? {}).filter(item => !item.configured))
 const visible = computed(() => !dismissed.value && (serviceUnavailable.value || (status.value?.modules

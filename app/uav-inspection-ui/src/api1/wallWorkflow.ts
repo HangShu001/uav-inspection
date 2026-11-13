@@ -13,6 +13,7 @@ export interface Task {
   name: string
   building: string
   facade: string
+  created_at: string
   duration: number | null
   offset: number
   video_url: string

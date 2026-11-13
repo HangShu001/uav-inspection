@@ -37,7 +37,7 @@ def url(task_id, suffix):
 def task_data(row):
     return {
         'id': row['id'], 'name': row['name'], 'building': row['building'], 'facade': row['facade'],
-        'duration': row['duration'], 'offset': row['offset'],
+        'duration': row['duration'], 'offset': row['offset'], 'created_at': row['created_at'],
         'video_url': url(row['id'], 'video'),
         'subtitle_url': url(row['id'], 'subtitle') if row['subtitle'] else None,
     }

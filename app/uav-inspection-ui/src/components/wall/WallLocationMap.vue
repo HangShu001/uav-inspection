@@ -43,7 +43,7 @@ function updateCurrent() {
   }).bindTooltip('无人机拍摄位置').addTo(map)
   if (initialPoint && props.compact && !props.points.length) {
     initialPoint = false
-    map.setView(coordinate, 18)
+    map.setView(coordinate, 18, { animate: false })
   } else if (props.compact && following.value && !map.getBounds().pad(-0.2).contains(coordinate)) {
     map.panTo(coordinate, { animate: false })
   }
@@ -51,7 +51,7 @@ function updateCurrent() {
 
 function follow() {
   following.value = true
-  if (props.current) map?.panTo([props.current.latitude, props.current.longitude])
+  if (props.current) map?.panTo([props.current.latitude, props.current.longitude], { animate: false })
 }
 
 function renderPoints() {
@@ -90,14 +90,14 @@ function renderPoints() {
     updateCurrent()
   }
 
-  if (bounds.length > 1) map.fitBounds(L.latLngBounds(bounds), { padding: [36, 36], maxZoom: 19 })
-  else if (bounds.length === 1) map.setView(bounds[0], 18)
+  if (bounds.length > 1) map.fitBounds(L.latLngBounds(bounds), { padding: [36, 36], maxZoom: 19, animate: false })
+  else if (bounds.length === 1) map.setView(bounds[0], 18, { animate: false })
 }
 
 onMounted(async () => {
   await nextTick()
   if (!containerRef.value) return
-  map = L.map(containerRef.value, { zoomControl: true, attributionControl: true }).setView([24.8334, 102.8399], 16)
+  map = L.map(containerRef.value, { zoomControl: true, attributionControl: true, zoomAnimation: false }).setView([24.8334, 102.8399], 16)
   const tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 20,
     attribution: 'Esri World Imagery',
@@ -107,7 +107,7 @@ onMounted(async () => {
   tiles.addTo(map)
   overlay = L.layerGroup().addTo(map)
   map.on('dragstart', () => { following.value = false })
-  resizeObserver = new ResizeObserver(() => map?.invalidateSize())
+  resizeObserver = new ResizeObserver(() => map?.invalidateSize({ pan: false }))
   resizeObserver.observe(containerRef.value)
   renderPoints()
 })
@@ -118,6 +118,7 @@ watch(() => props.current, updateCurrent)
 onUnmounted(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
+  map?.stop()
   map?.remove()
   map = null
 })

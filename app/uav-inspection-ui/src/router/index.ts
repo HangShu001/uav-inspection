@@ -10,6 +10,7 @@ const AssetsUploadView = () => import('../views/AssetsUploadView.vue')
 const RoofInspectionView = () => import('../views/RoofInspectionView.vue')
 const PowerLineInspectionView = () => import('../views/PowerLineInspectionView.vue')
 const WallWorkflowView = () => import('../views/WallWorkflowView.vue')
+const WallArchiveView = () => import('../views/WallArchiveView.vue')
 const WallInspectionView = () => import('../views/WallInspectionView.vue')
 const PruningInspectionView = () => import('../views/PruningInspectionView.vue')
 const DigitalRoseGardenView = () => import('../views/DigitalRoseGardenView.vue')
@@ -27,7 +28,8 @@ const router = createRouter({
     { path: '/power', name: 'power', component: PowerLineInspectionView },
     { path: '/roof', name: 'roof', component: RoofInspectionView },
     { path: '/wall', name: 'wall', component: WallWorkflowView },
-    { path: '/wall/replay', name: 'wall-replay', component: WallInspectionView },
+    { path: '/wall/replay', name: 'wall-replay', component: WallArchiveView },
+    { path: '/wall/replay/tools', name: 'wall-replay-tools', component: WallInspectionView },
     { path: '/pruning', name: 'pruning', component: PruningInspectionView },
     { path: '/height', name: 'height', component: VegetationMeasurementView, props: { mode: 'height' } },
     { path: '/area', name: 'area', component: VegetationMeasurementView, props: { mode: 'area' } },

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ArrowLeft, FileDown, MapPin, MessageCircle, Plus } from 'lucide-vue-next'
+import { Building2, CircleCheck, ClipboardCheck, FileDown, Film, ListChecks, MapPin, MessageCircle, Plus, Radio, SearchCheck, SlidersHorizontal, Wrench } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+import WallWorkspaceHeader from '../components/wall/WallWorkspaceHeader.vue'
+import '../components/wall/wallWorkspace.css'
 import WallLive from '../components/wall/WallLive.vue'
 import WallLocationMap from '../components/wall/WallLocationMap.vue'
 import WallWorkOrder from '../components/wall/WallWorkOrder.vue'
@@ -9,6 +12,7 @@ import { webPath } from '../utils/webroot'
 import { uploadInspection, wallError, wallWorkflow, type CountKey, type Finding, type FindingState,
   type ModelOption, type OrderAction, type Task, type TaskDetail } from '../api1/wallWorkflow'
 
+const route = useRoute()
 const tasks = ref<Task[]>([])
 const taskId = ref('')
 const current = ref<TaskDetail | null>(null)
@@ -52,12 +56,15 @@ const assistantOpen = ref(false)
 const prompt = ref('')
 const assistantReply = ref('我可以帮你找待复核记录、跳到指定时间，或说明怎样上传字幕。')
 const draftPreview = ref(false)
+const reviewPanel = ref<HTMLElement>()
 
 const labels: Record<FindingState, string> = { pending: '待复核', confirmed: '已确认', dismissed: '已排除', merged: '已合并' }
-const cards: { key: CountKey; label: string }[] = [
-  { key: 'pending', label: '疑似待复核' }, { key: 'confirmed', label: '已确认脱落' },
-  { key: 'assigned', label: '已派单' }, { key: 'completed', label: '已修复' },
-]
+const cards = [
+  { key: 'pending', label: '疑似待复核', icon: SearchCheck },
+  { key: 'confirmed', label: '已确认脱落', icon: ClipboardCheck },
+  { key: 'assigned', label: '已派单', icon: Wrench },
+  { key: 'completed', label: '已修复', icon: CircleCheck },
+] as const
 const runStates = { queued: '等待分析', running: '正在分析', completed: '分析完成', failed: '分析未完成', cancelled: '分析已停止' }
 const run = computed(() => current.value?.runs[0])
 const analyzing = computed(() => run.value?.state === 'running' || run.value?.state === 'queued')
@@ -110,13 +117,17 @@ function file(event: Event) {
 }
 async function refreshTasks(preferred?: string) {
   tasks.value = await wallWorkflow.tasks()
-  if (!stopped) taskId.value = preferred || taskId.value || tasks.value[0]?.id || ''
+  const requested = tasks.value.find(task => task.id === route.query.task)
+  if (!stopped) taskId.value = preferred || taskId.value || requested?.id || tasks.value[0]?.id || ''
 }
 async function refresh(id = taskId.value) {
   if (!id) return
   const requestId = ++detailRequest
   const data = await wallWorkflow.detail(id)
-  if (!stopped && id === taskId.value && requestId === detailRequest) current.value = data
+  if (!stopped && id === taskId.value && requestId === detailRequest) {
+    current.value = data
+    return data
+  }
 }
 async function refreshModels() {
   const data = await wallWorkflow.models()
@@ -150,7 +161,16 @@ watch(taskId, async id => {
   tab.value = 'findings'
   draftPreview.value = false
   if (id) {
-    try { await refresh(id) } catch (failure) { if (id === taskId.value) error.value = wallError(failure) }
+    try {
+      const data = await refresh(id)
+      const requestedOrder = data?.orders.find(item => item.id === route.query.order)
+      if (id === taskId.value && id === route.query.task && requestedOrder) {
+        orderId.value = requestedOrder.id
+        tab.value = 'orders'
+      }
+    } catch (failure) {
+      if (id === taskId.value) error.value = wallError(failure)
+    }
   }
 })
 watch(() => current.value?.task.offset, value => { subtitleOffset.value = value || 0 })
@@ -296,9 +316,10 @@ function orderPhoto(kind: 'before' | 'after', file: File) {
     await refresh()
   }, '照片已保存。')
 }
-function changeFilter(value: typeof filter.value) {
+function changeFilter(value: typeof filter.value, reveal = false) {
   filter.value = value
   tab.value = 'findings'
+  if (reveal) reviewPanel.value?.scrollIntoView({ block: 'start', behavior: 'smooth' })
 }
 async function ask(text = prompt.value, useProvider = true): Promise<void> {
   if (!text.trim()) return
@@ -342,26 +363,23 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 text-slate-900">
-    <header class="border-b border-slate-200 bg-white">
-      <div class="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
+  <div class="wall-shell">
+    <WallWorkspaceHeader active="workbench" />
+    <main class="wall-main space-y-4">
+      <div class="wall-hero">
         <div>
-          <RouterLink to="/" class="mb-1 inline-flex items-center gap-1 text-sm text-slate-600"><ArrowLeft :size="15" /> 返回首页</RouterLink>
-          <h1 class="text-2xl font-semibold">建筑外墙巡检</h1>
+          <h1>巡检工作台</h1>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <RouterLink to="/wall/replay" class="button">历史任务</RouterLink>
-          <button class="button" :aria-expanded="showLive" @click="showLive = !showLive">现场直播</button>
-          <button class="button" :aria-expanded="assistantOpen" @click="assistantOpen = !assistantOpen"><MessageCircle :size="16" /> 巡检助手</button>
-          <button class="primary" @click="showUpload = !showUpload"><Plus :size="17" /> 上传视频</button>
+        <div class="flex flex-wrap gap-2">
+          <button class="wall-button wall-button--hero" :aria-expanded="showLive" @click="showLive = !showLive"><Radio :size="17" /> 现场直播</button>
+          <button class="wall-button wall-button--hero" :aria-expanded="assistantOpen" @click="assistantOpen = !assistantOpen"><MessageCircle :size="17" /> 巡检助手</button>
+          <button class="wall-button wall-button--mint" :aria-expanded="showUpload" @click="showUpload = !showUpload"><Plus :size="18" /> 上传视频</button>
         </div>
       </div>
-    </header>
-    <main class="mx-auto max-w-[1500px] space-y-4 px-4 py-4 md:px-8">
       <p v-if="error" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ error }}</p>
       <p v-if="notice" class="rounded-md bg-teal-50 p-3 text-sm text-teal-900" role="status">{{ notice }}</p>
       <WallLive v-if="showLive" />
-      <section v-if="showUpload" class="panel">
+      <section v-if="showUpload" class="wall-panel panel">
         <h2 class="font-semibold">上传巡检视频</h2>
         <form class="mt-3 grid gap-3 text-sm md:grid-cols-3" @submit.prevent="submitUpload">
           <label>任务名称<input v-model.trim="name" class="field" maxlength="120" required :disabled="busy" /></label>
@@ -376,7 +394,7 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
           <p v-if="progress !== null" class="md:col-span-3" role="status">视频上传 {{ progress }}%{{ progress === 100 && busy ? '，正在检查视频' : '' }}</p>
         </form>
       </section>
-      <section v-if="assistantOpen" class="panel" aria-label="巡检助手">
+      <section v-if="assistantOpen" class="wall-panel panel" aria-label="巡检助手">
         <h2 class="font-semibold">巡检助手</h2>
         <p class="mt-2 text-sm" role="status">{{ assistantReply }}</p>
         <div class="mt-3 flex flex-wrap gap-2">
@@ -387,21 +405,37 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
           <button class="primary">发送</button>
         </form>
       </section>
-      <section class="panel">
-        <label class="block text-sm font-medium md:max-w-md">巡检任务
+      <section class="wall-panel task-bar">
+        <span class="task-icon"><Building2 :size="22" /></span>
+        <label class="task-picker text-sm font-semibold">当前任务
           <select v-model="taskId" class="field" :disabled="busy || !tasks.length">
             <option value="" disabled>{{ loading ? '正在加载' : '请选择任务' }}</option>
             <option v-for="item in tasks" :key="item.id" :value="item.id">{{ item.name }} · {{ item.building }} {{ item.facade }}</option>
           </select>
         </label>
-        <p v-if="!tasks.length && !loading" class="mt-3 text-sm text-slate-600">还没有巡检任务。上传一段外墙视频即可开始。</p>
+        <div v-if="current" class="task-meta">
+          <span class="wall-status" :data-tone="run?.state === 'completed' ? 'green' : analyzing ? 'blue' : run?.state === 'failed' ? 'red' : undefined">
+            <span class="status-dot"></span>{{ run ? runStates[run.state] : '待检测' }}
+          </span>
+          <span v-if="current.task.duration">{{ time(current.task.duration) }} 录像</span>
+        </div>
+        <p v-if="!tasks.length && !loading" class="text-sm text-slate-600">还没有巡检任务。上传一段外墙视频即可开始。</p>
       </section>
       <template v-if="current">
+        <section v-if="current.counts" aria-label="当前任务统计" class="work-metrics">
+          <button v-for="card in cards" :key="card.key" class="wall-panel work-metric" :data-kind="card.key"
+            :aria-pressed="tab === 'findings' && filter === card.key" @click="changeFilter(card.key, true)">
+            <span class="metric-icon"><component :is="card.icon" :size="20" /></span>
+            <span><span class="metric-label">{{ card.label }}</span>
+              <strong>{{ current.counts[card.key] }} <small>处</small></strong>
+            </span>
+          </button>
+        </section>
         <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
-          <section class="panel space-y-3">
+          <section class="wall-panel panel space-y-3 footage-panel">
             <div class="flex flex-wrap items-start justify-between gap-3">
-              <div><h2 class="font-semibold">{{ current.task.name }}</h2><p class="text-sm text-slate-600">{{ current.task.building }} · {{ current.task.facade }}</p></div>
-              <span v-if="run" class="text-sm font-medium text-teal-900">{{ runStates[run.state] }}</span>
+              <div><h2 class="wall-panel-title flex items-center gap-2"><Film :size="19" /> 巡检录像</h2><p class="mt-1 text-sm text-slate-600">{{ current.task.name }}</p></div>
+              <span class="flex items-center gap-1 text-sm text-slate-600"><MapPin :size="15" /> {{ current.task.building }} · {{ current.task.facade }}</span>
             </div>
             <video :key="current.task.id" ref="video" :src="current.task.video_url" controls playsinline preload="metadata"
               class="aspect-video w-full rounded-md bg-slate-950 object-contain"
@@ -417,7 +451,7 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
                 <button class="button" :disabled="busy" @click="act(async () => { await wallWorkflow.cancel(taskId, run!.id); await refresh() }, '已停止分析。')">停止分析</button>
               </div>
               <details v-else class="rounded-md border border-slate-200 px-3 py-2.5">
-                <summary class="cursor-pointer font-medium">检测设置</summary>
+                <summary class="cursor-pointer font-semibold"><SlidersHorizontal :size="15" class="mr-1 inline-block align-[-2px]" />检测设置</summary>
                 <div class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                   <label>检测模型<select v-model="model" class="field"><option value="" disabled>请选择模型</option><option v-for="option in models" :key="option.id" :value="option.id">{{ option.name }}</option></select></label>
                   <label>检测范围<select v-model="mode" class="field"><option value="sample">快速分析</option><option value="all">逐帧分析</option></select></label>
@@ -434,8 +468,8 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
               <p v-if="!model" class="text-sm text-slate-600">{{ canUploadModel ? "开始检测前，请在检测设置中添加模型。" : "开始检测前，请联系管理员添加模型。" }}</p>
             </div>
           </section>
-          <section class="panel">
-            <h2 class="flex items-center gap-2 font-semibold"><MapPin :size="18" /> 飞行数据</h2>
+          <section class="wall-panel panel">
+            <h2 class="wall-panel-title flex items-center gap-2"><MapPin :size="18" /> 飞行数据</h2>
             <div v-if="routePoints.length" class="mt-3 overflow-hidden rounded-md border border-slate-200">
               <WallLocationMap :points="routePoints" :current="currentPoint" compact />
             </div>
@@ -456,23 +490,16 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
             </div>
           </section>
         </div>
-        <section class="panel">
+        <section ref="reviewPanel" class="wall-panel panel review-panel">
           <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex gap-2">
-              <button class="button" :aria-pressed="tab === 'findings'" @click="tab = 'findings'">巡检发现</button>
-              <button class="button" :aria-pressed="tab === 'orders'" @click="tab = 'orders'">维修工单</button>
+            <div class="review-nav">
+              <button :aria-pressed="tab === 'findings'" @click="tab = 'findings'"><ListChecks :size="17" /> 巡检发现</button>
+              <button :aria-pressed="tab === 'orders'" @click="tab = 'orders'"><Wrench :size="17" /> 维修工单</button>
             </div>
             <div v-if="manager" class="flex flex-wrap gap-2">
               <a class="button" :href="webPath('/api/v1/wall/workflow/tasks/' + taskId + '/export')"><FileDown :size="16" /> 导出明细</a>
               <a class="button" :href="webPath('/api/v1/wall/workflow/tasks/' + taskId + '/report')"><FileDown :size="16" /> 导出报告</a>
             </div>
-          </div>
-          <div v-if="current.counts" class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <button v-for="card in cards" :key="card.key" class="rounded-md border border-slate-200 p-3 text-left hover:bg-teal-50"
-              :aria-pressed="tab === 'findings' && filter === card.key" @click="changeFilter(card.key)">
-              <span class="text-sm text-slate-700">{{ card.label }}</span>
-              <span class="mt-1 block text-xl font-semibold tabular-nums">{{ current.counts[card.key] }} <span class="text-sm font-normal">处</span></span>
-            </button>
           </div>
           <template v-if="tab === 'findings'">
             <div class="mt-4 flex flex-wrap items-end gap-2">
@@ -531,11 +558,40 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
 </template>
 
 <style scoped>
-.panel { border: 1px solid #e2e8f0; border-radius: .5rem; background: white; padding: 1rem; }
-.field { display: block; width: 100%; margin-top: .25rem; min-height: 2.5rem; padding: .4rem .55rem; border: 1px solid #cbd5e1; border-radius: .375rem; }
-.button,.primary { display: inline-flex; min-height: 2.5rem; align-items: center; justify-content: center; gap: .35rem; border: 1px solid #cbd5e1; border-radius: .375rem; padding: .4rem .8rem; font-size: .875rem; }
-.button:hover,.button[aria-pressed="true"] { background: #f0fdfa; border-color: #5eead4; }
-.primary { color: white; background: #0f766e; border-color: #0f766e; }
-button:disabled { opacity: .5; }
-:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+.panel { padding: clamp(.9rem, 2vw, 1.2rem); }
+.field { display: block; width: 100%; margin-top: .25rem; min-height: 42px; padding: .4rem .65rem; border: 1px solid #c9d5e1; border-radius: 7px; background: white; }
+.button,.primary { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: .35rem; border: 1px solid #ccd7e2; border-radius: 7px; padding: .4rem .8rem; font-size: .875rem; font-weight: 600; }
+.button:hover { background: #f1f6fa; border-color: #7f9aab; }
+.primary { color: white; background: var(--wall-accent); border-color: var(--wall-accent); }
+.primary:hover:not(:disabled) { background: var(--wall-accent-dark); }
+.task-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .85rem; padding: .8rem 1rem; }
+.task-icon { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 8px; background: #e8f1f7; color: #315a77; }
+.task-picker { width: min(480px, 100% - 56px); }
+.task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-left: auto; color: var(--wall-muted); font-size: .8125rem; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.work-metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .75rem; }
+.work-metric { --metric: #315a77; --metric-bg: #e8f2fc; display: flex; align-items: center; min-width: 0; gap: .8rem; padding: .85rem 1rem; border-left: 3px solid var(--metric); text-align: left; }
+.work-metric[data-kind="pending"] { --metric: #8c510c; --metric-bg: #fff2d9; }
+.work-metric[data-kind="assigned"] { --metric: #57538d; --metric-bg: #efecfb; }
+.work-metric[data-kind="completed"] { --metric: #126749; --metric-bg: #e3f5eb; }
+.work-metric:hover, .work-metric[aria-pressed="true"] { background: var(--metric-bg); }
+.metric-icon { display: grid; place-items: center; width: 39px; height: 39px; flex-shrink: 0; border-radius: 8px; background: var(--metric-bg); color: var(--metric); }
+.metric-label { color: var(--wall-muted); font-size: .8125rem; }
+.work-metric strong { display: block; color: var(--wall-ink); font-size: 1.5rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.work-metric small { font-size: .75rem; font-weight: 500; }
+.footage-panel video { display: block; max-height: min(52vh, 550px); border-radius: 9px; }
+progress { appearance: none; height: 6px; overflow: hidden; border: 0; border-radius: 999px; background: #e5edf4; }
+progress::-webkit-progress-bar { background: #e5edf4; }
+progress::-webkit-progress-value { background: var(--wall-accent); }
+progress::-moz-progress-bar { background: var(--wall-accent); }
+.review-panel { scroll-margin-top: 1rem; }
+.review-nav { display: flex; flex-wrap: wrap; gap: .75rem; }
+.review-nav button { display: flex; align-items: center; gap: .35rem; min-height: 42px; padding-inline: .5rem; color: var(--wall-muted); border-bottom: 2px solid transparent; font-weight: 600; }
+.review-nav button[aria-pressed="true"] { color: var(--wall-accent-dark); border-color: var(--wall-accent); }
+@media (max-width: 680px) {
+  .task-meta { margin-left: 56px; }
+  .work-metrics { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .5rem; }
+  .work-metric { padding: .55rem .6rem; gap: .5rem; }
+  .metric-icon { width: 31px; height: 31px; }
+}
 </style>

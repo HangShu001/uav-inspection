@@ -167,7 +167,7 @@ async def frontend(path: str):
     if candidate.is_file():
         return FileResponse(candidate)
     spa_routes = {'telecom', 'pest', 'heatmap-flow', 'power', 'roof', 'wall', 'pruning',
-                  'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower'}
-    if path.strip('/') in spa_routes | {'wall/replay'} and (FRONTEND_DIST / 'index.html').is_file():
+                  'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower', 'wall/replay', 'wall/replay/tools'}
+    if path.strip('/') in spa_routes and (FRONTEND_DIST / 'index.html').is_file():
         return FileResponse(FRONTEND_DIST / 'index.html')
     raise HTTPException(status_code=404, detail='页面或文件不存在；首次部署请先运行 setup。')

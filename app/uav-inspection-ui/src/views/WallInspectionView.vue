@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
   Check,
@@ -62,6 +63,8 @@ interface WallDetectionSnapshot {
   imageSize?: { width?: number; height?: number }
   telemetry?: TelemetryFrame | null
 }
+
+const route = useRoute()
 
 const emptyStats: WallStats = {
   Crack: 0,
@@ -1195,6 +1198,8 @@ function drawDetections(captureWidth: number, captureHeight: number) {
 onMounted(async () => {
   loading.value = true
   await Promise.all([refreshHealth(), loadVideoTasks(), loadWallConfig()])
+  const requested = tasks.value.find(task => task.id === route.query.task)
+  if (requested && currentTaskId.value !== requested.id) selectTask(requested)
   loading.value = false
   healthTimer = window.setInterval(refreshHealth, 10000)
   window.addEventListener('resize', syncCanvasSize)
@@ -1213,6 +1218,7 @@ onUnmounted(() => {
     <div class="w-full px-4 pt-4 md:px-5 xl:shrink-0">
       <InspectionHeader title="建筑外墙巡检" :task-name="currentTaskName" :online="backendOnline">
         <template #actions>
+          <RouterLink to="/wall/replay" class="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700">返回历史任务</RouterLink>
           <button
             class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             :disabled="!canPlay"
