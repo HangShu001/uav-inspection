@@ -29,7 +29,11 @@ const dismissed = ref(false)
 const checking = ref(false)
 let activeRequest: AbortController | null = null
 
-const currentModule = computed(() => Object.values(status.value?.modules ?? {}).find(item => item.route === route.path.replace(/\/$/, '')))
+const currentModule = computed(() => {
+  const path = route.path.replace(/\/$/, '')
+  if (path === '/wall') return undefined
+  return Object.values(status.value?.modules ?? {}).find(item => item.route === (path === '/wall/replay' ? '/wall' : path))
+})
 const incompleteModules = computed(() => Object.values(status.value?.modules ?? {}).filter(item => !item.configured))
 const visible = computed(() => !dismissed.value && (serviceUnavailable.value || (status.value?.modules
   ? Boolean(currentModule.value && (!currentModule.value.configured || ['demo', 'offline-results'].includes(currentModule.value.mode))) || route.path === '/' && incompleteModules.value.length > 0

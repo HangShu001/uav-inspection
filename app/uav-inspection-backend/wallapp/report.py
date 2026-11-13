@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
+import os
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
@@ -20,10 +21,17 @@ CLASS_NAMES = {
 
 
 def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    path = FONT_BOLD if bold and FONT_BOLD.exists() else FONT_REGULAR
-    if not path.exists():
-        path = Path(r"C:\Windows\Fonts\simhei.ttf")
-    return ImageFont.truetype(str(path), size=size)
+    configured = os.getenv('UAV_WALL_REPORT_FONT')
+    candidates = [Path(configured)] if configured else []
+    candidates.extend([
+        FONT_BOLD if bold else FONT_REGULAR, FONT_REGULAR,
+        Path('/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc' if bold
+             else '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'),
+    ])
+    for path in candidates:
+        if path.is_file():
+            return ImageFont.truetype(str(path), size=size)
+    raise RuntimeError('请配置外墙报告的中文字体 UAV_WALL_REPORT_FONT')
 
 
 def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, width: int) -> list[str]:

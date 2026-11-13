@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Response
@@ -23,7 +24,21 @@ from assetsapp import api as assets_api
 from fendaiapp import api as fendai_api
 from authapp import api as auth_api
 
-app = FastAPI(title='园区无人机巡检系统')
+from wallapp import analysis as wall_analysis
+from wallapp.api import workflow as wall_workflow
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    stop = wall_analysis.start_worker()
+    try:
+        yield
+    finally:
+        stop.set()
+        wall_analysis.wake.set()
+
+
+app = FastAPI(title='园区无人机巡检系统', lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,6 +74,7 @@ app.include_router(rose_detect.router, prefix='/api/v1/rose', tags=['玫瑰检�
 app.include_router(telecom_detect.router, prefix='/api/v1/telecom', tags=['通信基站巡检'])
 app.include_router(roof_detect.router, prefix='/api/v1/roof', tags=['屋顶巡检'])
 app.include_router(power_detect.router, prefix='/api/v1/power', tags=['杆路线路巡检'])
+app.include_router(wall_workflow.router, prefix='/api/v1/wall/workflow', tags=['外墙巡检任务'])
 app.include_router(wall_detect.router, prefix='/api/v1/wall', tags=['建筑外墙巡检'])
 app.include_router(pruning_detect.router, prefix='/api/v1/pruning', tags=['乔木修剪检测'])
 app.include_router(vegetation_api.router, prefix='/api/v1/vegetation', tags=['乔木与绿化测量'])
@@ -152,6 +168,6 @@ async def frontend(path: str):
         return FileResponse(candidate)
     spa_routes = {'telecom', 'pest', 'heatmap-flow', 'power', 'roof', 'wall', 'pruning',
                   'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower'}
-    if path.strip('/') in spa_routes and (FRONTEND_DIST / 'index.html').is_file():
+    if path.strip('/') in spa_routes | {'wall/replay'} and (FRONTEND_DIST / 'index.html').is_file():
         return FileResponse(FRONTEND_DIST / 'index.html')
     raise HTTPException(status_code=404, detail='页面或文件不存在；首次部署请先运行 setup。')

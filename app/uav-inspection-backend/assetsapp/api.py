@@ -19,9 +19,11 @@ import time
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
+from authapp.api import require_account
+from wallapp.workflow import admin as wall_admin
 from deployment_paths import DATA_ROOT, backend_path
 
 router = APIRouter()
@@ -96,6 +98,11 @@ def _safe_name(raw: str | None) -> str:
     return name
 
 
+def _authorize_wall_model(category: str, request: Request) -> None:
+    if category == 'wall-model' and not wall_admin(require_account(request)['username']):
+        raise HTTPException(status_code=403, detail='只有管理员可以上传外墙模型')
+
+
 def _validate_model_target(category: str, subdir: str, name: str) -> None:
     expected = MODEL_FILENAMES.get(category)
     if expected and (_safe_subdir(subdir) != Path() or name != expected):
@@ -165,6 +172,7 @@ async def list_files(category: str, subdir: str = ''):
 
 @router.post('/upload')
 async def upload_assets(
+    request: Request,
     category: str = Form(...),
     subdir: str = Form(''),
     overwrite: bool = Form(False),
@@ -173,6 +181,7 @@ async def upload_assets(
     base = CATEGORIES.get(category)
     if base is None:
         raise HTTPException(status_code=422, detail=f'未知分类：{category}')
+    _authorize_wall_model(category, request)
     target_dir = base / _safe_subdir(subdir)
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -221,6 +230,7 @@ def _part_index(path: Path) -> int:
 
 @router.post('/upload/init')
 async def upload_init(
+    request: Request,
     category: str = Form(...),
     filename: str = Form(...),
     size: int = Form(...),
@@ -230,6 +240,7 @@ async def upload_init(
     base = CATEGORIES.get(category)
     if base is None:
         raise HTTPException(status_code=422, detail=f'未知分类：{category}')
+    _authorize_wall_model(category, request)
     if size <= 0:
         raise HTTPException(status_code=422, detail='size 必须为正')
     name = _safe_name(filename)
@@ -289,6 +300,7 @@ async def upload_status(upload_id: str):
 
 @router.post('/upload/chunk')
 async def upload_chunk(
+    request: Request,
     upload_id: str = Form(...),
     index: int = Form(...),
     file: UploadFile = File(...),
@@ -300,6 +312,7 @@ async def upload_chunk(
     if index < 0:
         raise HTTPException(status_code=422, detail='非法分片号')
     meta = json.loads(meta_path.read_text())
+    _authorize_wall_model(meta['category'], request)
     total_chunks = (meta['size'] + meta['chunk_size'] - 1) // meta['chunk_size']
     if index >= total_chunks:
         raise HTTPException(status_code=422, detail=f'分片号越界（共 {total_chunks} 片）')
@@ -313,12 +326,13 @@ async def upload_chunk(
 
 
 @router.post('/upload/complete')
-async def upload_complete(upload_id: str = Form(...)):
+async def upload_complete(request: Request, upload_id: str = Form(...)):
     workdir = _upload_dir(upload_id)
     meta_path = workdir / 'meta.json'
     if not meta_path.is_file():
         raise HTTPException(status_code=404, detail='uploadId 不存在')
     meta = json.loads(meta_path.read_text())
+    _authorize_wall_model(meta['category'], request)
     base = CATEGORIES.get(meta['category'])
     target_dir = base / _safe_subdir(meta['subdir'])
     target_dir.mkdir(parents=True, exist_ok=True)

@@ -19,7 +19,7 @@ class ModuleReadinessTests(unittest.TestCase):
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory(prefix='uav-module-readiness-')
         cls.root = Path(cls.temporary.name) / 'data'
-        cls.environment = patch.dict(os.environ, {'UAV_DATA_DIR': str(cls.root), 'ROSE_MODEL_PATH': ''})
+        cls.environment = patch.dict(os.environ, {'UAV_DATA_DIR': str(cls.root), 'ROSE_MODEL_PATH': '', 'UAV_WALL_ADMINS': 'admin'})
         cls.environment.start()
         from fastapi.testclient import TestClient
         from heatmapapp.main import app
@@ -53,6 +53,9 @@ class ModuleReadinessTests(unittest.TestCase):
         return response.json()['data']
 
     def upload(self, category, name, subdir=''):
+        if category == 'wall-model':
+            login = self.client.post('/api/v1/auth/login', json={'username': 'admin', 'password': 'admin123'})
+            self.assertEqual(login.status_code, 200, login.text)
         return self.client.post('/api/v1/assets/upload', data={'category': category, 'subdir': subdir},
                                 files={'files': (name, b'fixture', 'application/octet-stream')})
 

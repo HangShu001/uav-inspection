@@ -106,6 +106,25 @@ def login(data: Credentials, request: Request, response: Response):
         return start_session(connection, user, request, response)
 
 
+def require_account(request: Request):
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        raise HTTPException(401, '请先登录')
+    with database() as connection:
+        user = connection.execute(
+            'SELECT users.id, users.username FROM sessions JOIN users ON users.id = sessions.user_id '
+            'WHERE token_hash = ? AND expires_at > ?', (token_hash(token), int(time.time())),
+        ).fetchone()
+    if not user:
+        raise HTTPException(401, '请先登录')
+    return dict(user)
+
+
+def account_exists(username: str):
+    with database() as connection:
+        return connection.execute('SELECT 1 FROM users WHERE username=?', (username,)).fetchone() is not None
+
+
 @router.get('/me')
 def me(request: Request, response: Response):
     response.headers['Cache-Control'] = 'no-store'
