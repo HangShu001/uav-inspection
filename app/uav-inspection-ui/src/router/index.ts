@@ -14,6 +14,7 @@ const PruningInspectionView = () => import('../views/PruningInspectionView.vue')
 const DigitalRoseGardenView = () => import('../views/DigitalRoseGardenView.vue')
 const VegetationMeasurementView = () => import('../views/VegetationMeasurementView.vue')
 const FendaiFlowerWalkthroughView = () => import('../views/FendaiFlowerWalkthroughView.vue')
+const PlateInspectionView = () => import('../views/PlateInspectionView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,7 @@ const router = createRouter({
     { path: '/rose-digital', name: 'rose-digital', component: DigitalRoseGardenView },
     { path: '/rose-yield', name: 'rose-yield', component: RoseYieldView },
     { path: '/fendai-flower', name: 'fendai-flower', component: FendaiFlowerWalkthroughView },
+    { path: '/plate', name: 'plate', component: PlateInspectionView },
   ],
 })
 

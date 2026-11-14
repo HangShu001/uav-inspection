@@ -20,6 +20,7 @@ MODEL_PATHS = {
     'power': lambda: backend_path('powerapp', 'wire-pole-seg.pt'),
     'wall': lambda: backend_path('wallapp', 'wall-damage-best.pt'),
     'pruning': lambda: backend_path('treeapp', 'tree-pruning-best.pt'),
+    'plate': lambda: backend_path('plateapp', 'plate-det-best.pt'),
 }
 
 
@@ -107,6 +108,19 @@ def module_status() -> dict[str, dict]:
     entry('pest', '病虫害巡检', '/pest', 'simulation', [],
           '玉米试验田三维演示，支持区域巡查、重点复核和视点调度，无需额外视频资源。')
     entry('rose-digital', '数字玫瑰园', '/rose-digital', 'demo', [], '页面展示内置示例地块数据。')
+
+    plate_missing = []
+    if not _has_video(backend_path('platedata', 'media')):
+        plate_missing.append(requirement('巡检照片或视频', 'plate-media'))
+    if not MODEL_PATHS['plate']().is_file():
+        plate_missing.append(requirement(f'检测模型 {MODEL_PATHS["plate"]().name}', 'plate-model'))
+    if not dependencies:
+        plate_missing.append(requirement('服务器 AI 推理依赖（构建时启用 UAV_INSTALL_INFERENCE=1）'))
+    acceptance_ready = (Path(__file__).resolve().parent / 'plateapp' / 'data' / 'acceptance.json').is_file()
+    plate_note = '缺少检测权重时，页面仍可查看最近一次验收结果回放；实时检测与车牌号识别需要对应权重。'
+    if acceptance_ready:
+        plate_note = '已内置一次验收结果回放，可直接查看；' + plate_note
+    entry('plate', '车辆车牌巡检', '/plate', 'inference', plate_missing, plate_note)
     scene_ready = backend_path('fendaidata', 'scenes', 'fendai-flower.ksplat').is_file()
     entry('fendai', '粉黛花漫游', '/fendai-flower', 'scene', [] if scene_ready else [
         requirement('fendai-flower.ksplat 场景', 'fendai-scenes')])

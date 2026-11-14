@@ -1,9 +1,15 @@
+> **本仓库是定制 fork**（维护者 [@HangShu001](https://github.com/HangShu001)）：在
+> [`rg-ut/uav-inspection`](https://github.com/rg-ut/uav-inspection) 基础上增加了
+> **车辆车牌巡检**模块，并补齐了跨平台开发与上游同步的配套。上游原有模块、接口与文档保持原样，
+> 改动全部以加装形式落地，便于单独部署，也便于把通用改进提回上游。
+> 改动清单、同步命令与 PR 流程见 [`docs/fork-customization.md`](docs/fork-customization.md)。
+
 <div align="center">
 
 # 🚁 UAV Inspection Platform
 
 **低空智能巡检与决策平台** — 一个 FastAPI + Vue 3 的无人机巡检演示系统：
-单容器部署、12 个业务模块、WebSocket 实时推理流、内置素材上传中心。
+单容器部署、13 个业务模块、WebSocket 实时推理流、内置素材上传中心。
 
 [![Python](https://img.shields.io/badge/python-3.10--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.1xx-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -12,7 +18,7 @@
 [![Docker](https://img.shields.io/badge/deploy-docker%20compose-2496ED?logo=docker&logoColor=white)](deploy/)
 [![License](https://img.shields.io/badge/license-MIT-green)](#license)
 
-*首页 · 三大业务分组，12 个业务模块（截图为加入粉黛花漫游前的界面）*
+*首页 · 三大业务分组，13 个业务模块（截图为加入粉黛花漫游前的界面）*
 
 ![home](docs/screenshots/home.png)
 
@@ -35,7 +41,8 @@
 | | 粉黛花三维漫游 | 3D Gaussian Splatting 场景、第一人称与触控漫游 |
 | | 玫瑰花产量估计 | 产量回归 |
 | | 热力客流监测 | 人员分布、聚集预警（实时推理流） |
-| 📦 素材管理 | **素材上传中心** | 21 分类白名单上传、业务模型专用入口、子目录组织、防覆盖开关 |
+| | **车辆车牌巡检** | 车牌检测与号码识别（OBB 旋转框）、蓝绿牌分类、违停余量判定、巡检结果回放 |
+| 📦 素材管理 | **素材上传中心** | 24 分类白名单上传、业务模型专用入口、子目录组织、防覆盖开关 |
 
 ### 设计特点
 
@@ -73,6 +80,7 @@ uav-inspection/
 │   │   ├── heatmapapp/             # 主入口 main.py：路由聚合 + SPA 托管 + WebSocket
 │   │   ├── assetsapp/              # 二阶段素材上传（分类白名单/防穿越/防覆盖）
 │   │   ├── telecomapp/ wallapp/ ...# 各巡检模块（检测接口 + 可选推理）
+│   │   ├── plateapp/               # 车辆车牌巡检：OBB 检测 + 可选二级识别 + 结果回放
 │   │   ├── uav_url_prefix.py       # UAV_URL_PREFIX 响应体 URL 前缀化（子路径支持）
 │   │   ├── optional_inference.py   # AI 可选依赖降级层（无 torch 时 503 提示）
 │   │   ├── deployment_paths.py     # 数据目录/前端 dist 路径推导
@@ -145,7 +153,7 @@ location ^~ /uav/ {
 1. **页面**：部署后访问 `/assets`（首页「素材管理」分组入口），分类下拉自带目标目录提示，默认重名跳过不覆盖
 2. **API**：`POST /api/v1/assets/upload`（multipart：`category` + 可选 `subdir` + `files[]`）；`GET /api/v1/assets/categories` 拉分类清单，`GET /api/v1/assets/files?category=...` 看目录内容
 
-安全设计：21 分类**白名单**（未知分类 422）、子目录逐段校验拒路径穿越、文件名 basename + 控制字符清洗、`overwrite=true` 才允许覆盖已有文件。
+安全设计：24 分类**白名单**（未知分类 422）、子目录逐段校验拒路径穿越、文件名 basename + 控制字符清洗、`overwrite=true` 才允许覆盖已有文件。
 专用业务模型分类限定文件名和空子目录，避免模型上传后落入检测器不读取的位置。
 
 ### 其他模块打开后无法检测或任务为空

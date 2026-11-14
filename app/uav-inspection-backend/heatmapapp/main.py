@@ -22,6 +22,7 @@ from vegetationapp import api as vegetation_api
 from assetsapp import api as assets_api
 from fendaiapp import api as fendai_api
 from authapp import api as auth_api
+from plateapp.api import detect as plate_detect
 
 app = FastAPI(title='园区无人机巡检系统')
 
@@ -64,6 +65,7 @@ app.include_router(pruning_detect.router, prefix='/api/v1/pruning', tags=['乔�
 app.include_router(vegetation_api.router, prefix='/api/v1/vegetation', tags=['乔木与绿化测量'])
 app.include_router(assets_api.router, prefix='/api/v1/assets', tags=['素材上传'])
 app.include_router(fendai_api.router, prefix='/api/v1/fendai', tags=['粉黛花漫游'])
+app.include_router(plate_detect.router, prefix='/api/v1/plate', tags=['车辆车牌巡检'])
 
 app.mount('/api/v1/pest/media', StaticFiles(directory=PEST_MEDIA_PATH), name='pest_media')
 app.mount('/api/v1/rose/tasks', StaticFiles(directory=ROSE_TASKS_PATH), name='rose_tasks')
@@ -76,6 +78,8 @@ app.mount('/api/v1/roof/reports', StaticFiles(directory=ROOF_REPORTS_PATH), name
 app.mount('/api/v1/power/media', StaticFiles(directory=POWER_MEDIA_PATH), name='power_media')
 app.mount('/api/v1/wall/media', StaticFiles(directory=WALL_MEDIA_PATH), name='wall_media')
 app.mount('/api/v1/pruning/media', StaticFiles(directory=PRUNING_MEDIA_PATH), name='pruning_media')
+plate_detect.CARDS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount('/api/v1/plate/cards', StaticFiles(directory=plate_detect.CARDS_DIR), name='plate_cards')
 app.mount('/rose-pictures', StaticFiles(directory=ROSE_PICTURES_PATH), name='rose_pictures')
 
 app.include_router(ws_agent.router, prefix='/ws/v1', tags=['Agent对话'])
@@ -151,7 +155,7 @@ async def frontend(path: str):
     if candidate.is_file():
         return FileResponse(candidate)
     spa_routes = {'telecom', 'pest', 'heatmap-flow', 'power', 'roof', 'wall', 'pruning',
-                  'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower'}
+                  'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower', 'plate'}
     if path.strip('/') in spa_routes and (FRONTEND_DIST / 'index.html').is_file():
         return FileResponse(FRONTEND_DIST / 'index.html')
     raise HTTPException(status_code=404, detail='页面或文件不存在；首次部署请先运行 setup。')

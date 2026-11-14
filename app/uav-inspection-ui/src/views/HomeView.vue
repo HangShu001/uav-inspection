@@ -16,6 +16,7 @@ import {
   Camera,
   LineChart,
   Users,
+  Car,
   HardDriveUpload, UserRound, LogIn, UserPlus, LogOut,
 } from 'lucide-vue-next'
 
@@ -130,6 +131,13 @@ const modules = [
         theme: 'roseDigital',
         icon: Camera,
         desc: ['高斯模型', '第一人称漫游'],
+      },
+      {
+        name: '车辆车牌巡检',
+        path: '/plate',
+        theme: 'plate',
+        icon: Car,
+        desc: ['车牌识别', '违停判定'],
       },
     ],
   },

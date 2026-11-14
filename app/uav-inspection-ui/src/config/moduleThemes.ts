@@ -10,6 +10,7 @@ export type ModuleThemeKey =
   | 'roseDigital'
   | 'roseYield'
   | 'roseFlow'
+  | 'plate'
 
 export interface ModuleTheme {
   accent: string
@@ -144,5 +145,16 @@ export const moduleThemes: Record<ModuleThemeKey, ModuleTheme> = {
     ring: 'ring-sky-200',
     soft: 'bg-sky-50',
     text: 'text-sky-700',
+  },
+  plate: {
+    accent: 'bg-indigo-600',
+    badge: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+    card: 'bg-indigo-50/75 border-indigo-200/80 shadow-indigo-500/10',
+    gradient: 'from-indigo-500 to-violet-500',
+    hover: 'hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700',
+    icon: 'text-indigo-600',
+    ring: 'ring-indigo-200',
+    soft: 'bg-indigo-50',
+    text: 'text-indigo-700',
   },
 }

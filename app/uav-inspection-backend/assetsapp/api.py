@@ -37,6 +37,7 @@ CATEGORIES: dict[str, Path] = {
     'wall-media': DATA_ROOT / 'uav-inspection-backend' / 'walldata' / 'media',
     'roof-media': DATA_ROOT / 'uav-inspection-backend' / 'roofdata' / 'media',
     'pruning-media': DATA_ROOT / 'uav-inspection-backend' / 'treedata' / 'media',
+    'plate-media': backend_path('platedata', 'media'),
     'rose-pictures': DATA_ROOT / 'uav-inspection-ui' / 'public' / 'rose-pictures',
     'measurement-data': DATA_ROOT / 'measurement_data',
     'models': DATA_ROOT / 'models',
@@ -46,6 +47,8 @@ CATEGORIES: dict[str, Path] = {
     'wall-model': backend_path('wallapp'),
     'pruning-model': backend_path('treeapp'),
     'rose-model': backend_path('roseapp'),
+    'plate-model': backend_path('plateapp'),
+    'plate-recognizer': backend_path('plateapp', 'recognizer'),
     'telecom-tasks': backend_path('telecom-tasks'),
     'rose-tasks': backend_path('rose-tasks'),
     'roof-reports': backend_path('roofdata', 'reports'),
@@ -59,6 +62,7 @@ MODEL_FILENAMES = {
     'wall-model': 'wall-damage-best.pt',
     'pruning-model': 'tree-pruning-best.pt',
     'rose-model': 'rose-detect-best.pt',
+    'plate-model': 'plate-det-best.pt',
 }
 
 CATEGORY_HINTS = {
@@ -72,6 +76,8 @@ CATEGORY_HINTS = {
     'measurement-data': '结果放 task_01_xinxixueyuan_1 等任务子目录；点云 scene.json/scene.ply 放 pointcloud_web/任务编号。还需乔木实例数据及测量模型。',
     'tree-instances': '子目录填写原始任务编号，上传 summary.json、tree_instances.csv 和可选 tree_instances_overview.png。',
     'models': '测量模型使用 tree_shrub_gnb_v1、green_area_gnb_v1 子目录；巡检 .pt 权重请选择对应专用模型分类。',
+    'plate-media': '上传车辆巡检照片或视频。单帧检测与内置回放都不依赖这里的文件，上传只是留档。',
+    'plate-recognizer': '子目录留空；上传 model.onnx 或 model.pt，以及逐行字符表 charset.txt。meta.json 可选，用来声明 mode、输入尺寸与归一化方式。缺任一文件时按未安装识别器处理，检测照常。',
 }
 
 FORBIDDEN_NAME = re.compile(r'[\x00-\x1f\x7f]')
@@ -121,6 +127,7 @@ async def list_categories():
                 ('wall-media', '建筑外墙视频（walldata/media）'),
                 ('roof-media', '建筑屋顶视频（roofdata/media）'),
                 ('pruning-media', '乔木修剪视频（treedata/media）'),
+                ('plate-media', '车辆车牌巡检照片 / 视频（platedata/media）'),
                 ('rose-pictures', '玫瑰园照片（rose-pictures）'),
                 ('measurement-data', '测量结果（measurement_data）'),
                 ('models', '其他模型（models）'),
@@ -130,6 +137,8 @@ async def list_categories():
                 ('wall-model', '建筑外墙模型 wall-damage-best.pt'),
                 ('pruning-model', '乔木修剪模型 tree-pruning-best.pt'),
                 ('rose-model', '玫瑰检测模型 rose-detect-best.pt'),
+                ('plate-model', '车牌检测模型 plate-det-best.pt'),
+                ('plate-recognizer', '车牌识别模型（model.onnx + charset.txt）'),
                 ('telecom-tasks', '通信基站任务（视频 + SRT）'),
                 ('rose-tasks', '玫瑰检测任务（视频 + SRT）'),
                 ('roof-reports', '屋顶离线检测结果与报告'),

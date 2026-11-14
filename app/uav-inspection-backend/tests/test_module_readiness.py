@@ -63,7 +63,7 @@ class ModuleReadinessTests(unittest.TestCase):
         self.assertTrue(data['data_available'])
         self.assertTrue(data['inference_available'])  # Legacy summary remains compatible.
         modules = data['modules']
-        self.assertEqual(len(modules), 12)
+        self.assertEqual(len(modules), 13)
         self.assertTrue(modules['fendai']['configured'])
         self.assertFalse(modules['telecom']['configured'])
         self.assertIn('telecom-model', [item['category'] for item in modules['telecom']['missing']])

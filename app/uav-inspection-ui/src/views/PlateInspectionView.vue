@@ -1,0 +1,534 @@
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { CircleAlert, ImageUp, Layers, RefreshCw, ScanLine, Sparkles } from 'lucide-vue-next'
+import InspectionHeader from '../components/common/InspectionHeader.vue'
+import FloatingNotice from '../components/common/FloatingNotice.vue'
+import {
+  plateApi,
+  type AcceptanceData,
+  type PlateDetectResult,
+  type PlateInfoResult,
+  type RecognizerStatus,
+} from '../api1/plate'
+
+type TabKey = 'detect' | 'result'
+
+const activeTab = ref<TabKey>('detect')
+const online = ref<boolean | null>(null)
+const info = ref<PlateInfoResult | null>(null)
+const acceptance = ref<AcceptanceData | null>(null)
+const loadingAcceptance = ref(false)
+const detectResult = ref<PlateDetectResult | null>(null)
+const sourceUrl = ref('')
+const sourceName = ref('')
+const busy = ref(false)
+const dragging = ref(false)
+const viewMode = ref<'annotated' | 'source'>('annotated')
+const confThreshold = ref(0.35)
+const recognizeEnabled = ref(true)
+const previewCard = ref('')
+const noticeMessage = ref('')
+const noticeTone = ref<'info' | 'success' | 'warning' | 'error'>('info')
+const noticeTrigger = ref(0)
+
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const recognizer = computed<RecognizerStatus | null>(() => detectResult.value?.recognizer ?? info.value?.recognizer ?? null)
+const detectorReady = computed(() => Boolean(info.value))
+const hasResult = computed(() => Boolean(detectResult.value))
+const annotatedUrl = computed(() =>
+  detectResult.value ? `data:image/jpeg;base64,${detectResult.value.annotated_image}` : '',
+)
+const previewUrl = computed(() =>
+  viewMode.value === 'annotated' && annotatedUrl.value ? annotatedUrl.value : sourceUrl.value,
+)
+const detections = computed(() => detectResult.value?.detections ?? [])
+const colorStats = computed(() => {
+  const stats = detectResult.value?.stats ?? {}
+  return Object.entries(stats).filter(([, value]) => value > 0)
+})
+const summaryCards = computed(() => acceptance.value?.summary ?? [])
+const vehicles = computed(() => acceptance.value?.vehicles ?? [])
+const violations = computed(() => acceptance.value?.violations ?? [])
+const violatedCount = computed(() => violations.value.filter((item) => item.margin_m < 0).length)
+const batchLabel = computed(() => {
+  const batch = acceptance.value?.batch
+  if (!batch) return '尚未载入巡检批次'
+  return `${batch.start} 起 · ${batch.fsm}`
+})
+const statusText = computed(() => {
+  if (online.value === false) return '后端离线'
+  if (busy.value) return '正在推理'
+  if (!detectorReady.value) return '基础模式 · 检测权重未安装'
+  return info.value?.capabilities.oriented_boxes ? '就绪 · OBB 旋转框' : '就绪 · 水平框'
+})
+
+function notify(message: string, tone: typeof noticeTone.value = 'info') {
+  noticeMessage.value = message
+  noticeTone.value = tone
+  noticeTrigger.value += 1
+}
+
+function releaseSource() {
+  if (sourceUrl.value.startsWith('blob:')) URL.revokeObjectURL(sourceUrl.value)
+}
+
+async function refreshHealth() {
+  try {
+    await plateApi.getHealth()
+    online.value = true
+  } catch {
+    online.value = false
+  }
+}
+
+async function loadInfo() {
+  try {
+    const result = await plateApi.getInfo()
+    info.value = result.data
+    confThreshold.value = result.data.config.confidence
+  } catch {
+    info.value = null
+  }
+}
+
+async function loadAcceptance() {
+  loadingAcceptance.value = true
+  try {
+    const result = await plateApi.getAcceptance()
+    acceptance.value = result.data?.available ? result.data : null
+  } catch {
+    acceptance.value = null
+  } finally {
+    loadingAcceptance.value = false
+  }
+}
+
+function pickFile() {
+  fileInput.value?.click()
+}
+
+function handleFile(file: File | null | undefined) {
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    notify('请选择图片文件（JPG / PNG）', 'warning')
+    return
+  }
+  releaseSource()
+  sourceUrl.value = URL.createObjectURL(file)
+  sourceName.value = file.name
+  viewMode.value = 'source'
+  void runDetect(file)
+}
+
+function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  handleFile(target.files?.[0])
+  target.value = ''
+}
+
+function onDrop(event: DragEvent) {
+  dragging.value = false
+  handleFile(event.dataTransfer?.files?.[0])
+}
+
+async function runDetect(file: File) {
+  busy.value = true
+  detectResult.value = null
+  try {
+    const result = await plateApi.detectUpload(file, confThreshold.value, recognizeEnabled.value)
+    detectResult.value = result.data
+    viewMode.value = 'annotated'
+    const count = result.data.count
+    if (count === 0) {
+      notify('本帧没有检出车牌。可以调低置信度阈值再试，或确认车牌在画面中足够大。', 'warning')
+    } else if (result.data.plates.length) {
+      notify(`检出 ${count} 块车牌，识别出 ${result.data.plates.length} 个号码`, 'success')
+    } else {
+      notify(`检出 ${count} 块车牌，但识别器未安装，只有检测框与颜色分类`, 'info')
+    }
+  } catch (error) {
+    const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    notify(detail || '检测失败，请查看后端日志', 'error')
+  } finally {
+    busy.value = false
+  }
+}
+
+async function applyThreshold() {
+  if (!detectorReady.value) return
+  try {
+    await plateApi.updateConfig({ confidence: confThreshold.value })
+  } catch {
+    notify('阈值保存失败', 'warning')
+  }
+}
+
+function showCard(url: string | null) {
+  previewCard.value = url || ''
+}
+
+onMounted(async () => {
+  await refreshHealth()
+  await loadInfo()
+  await loadAcceptance()
+})
+
+onUnmounted(() => {
+  releaseSource()
+})
+</script>
+
+<template>
+  <div class="mobile-page relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-800">
+    <div class="pointer-events-none absolute top-[-10%] right-[-6%] h-[38%] w-[38%] rounded-full bg-indigo-300/20 blur-[120px]"></div>
+    <div class="pointer-events-none absolute bottom-[-12%] left-[-6%] h-[38%] w-[38%] rounded-full bg-sky-300/16 blur-[120px]"></div>
+
+    <div class="relative z-10 px-4 pt-4 md:px-6">
+      <InspectionHeader title="车辆车牌巡检" :task-name="batchLabel" task-label="巡检批次" :online="online">
+        <template #actions>
+          <button
+            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
+            :class="activeTab === 'detect'
+              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
+              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
+            @click="activeTab = 'detect'"
+          >
+            实时检测
+          </button>
+          <button
+            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
+            :class="activeTab === 'result'
+              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
+              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
+            @click="activeTab = 'result'"
+          >
+            巡检结果
+          </button>
+          <button
+            class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50"
+            @click="refreshHealth(); loadInfo()"
+          >
+            <RefreshCw :size="16" class="inline" />
+          </button>
+        </template>
+      </InspectionHeader>
+    </div>
+
+    <FloatingNotice :message="noticeMessage" :tone="noticeTone" :trigger="noticeTrigger" :duration="3600" centered />
+
+    <!-- 实时检测 -->
+    <main v-if="activeTab === 'detect'" class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[368px_minmax(0,1fr)]">
+      <aside class="space-y-3">
+        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-base font-semibold text-slate-900">投放图片</h2>
+            <span class="flex items-center gap-2 text-xs text-slate-500">
+              <span class="h-2.5 w-2.5 rounded-full" :class="online ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+              {{ statusText }}
+            </span>
+          </div>
+
+          <div
+            class="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition"
+            :class="dragging ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-slate-50/80 hover:border-indigo-300 hover:bg-indigo-50/60'"
+            @click="pickFile"
+            @dragover.prevent="dragging = true"
+            @dragleave.prevent="dragging = false"
+            @drop.prevent="onDrop"
+          >
+            <ImageUp :size="30" class="text-indigo-500" />
+            <p class="mt-3 text-sm font-medium text-slate-800">点击选择，或把图片拖到这里</p>
+            <p class="mt-1 text-xs text-slate-500">支持 JPG / PNG，单张检测</p>
+            <p v-if="sourceName" class="mt-2 max-w-full truncate text-xs font-medium text-indigo-600">{{ sourceName }}</p>
+          </div>
+          <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
+
+          <div class="mt-4 space-y-3">
+            <label class="block text-xs font-medium text-slate-600">
+              置信度阈值 <span class="ml-1 font-semibold text-indigo-600">{{ confThreshold.toFixed(2) }}</span>
+              <input
+                v-model.number="confThreshold"
+                type="range"
+                min="0.05"
+                max="0.95"
+                step="0.05"
+                class="mt-2 w-full accent-indigo-600"
+                @change="applyThreshold"
+              />
+            </label>
+            <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2 text-sm text-slate-700">
+              <span>同时识别车牌号</span>
+              <input v-model="recognizeEnabled" type="checkbox" class="h-4 w-4 accent-indigo-600" />
+            </label>
+          </div>
+        </section>
+
+        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+          <h2 class="text-base font-semibold text-slate-900">模型状态</h2>
+          <div class="mt-3 space-y-2 text-sm">
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2">
+              <span class="text-slate-500">检测权重</span>
+              <span class="font-medium" :class="detectorReady ? 'text-emerald-600' : 'text-amber-600'">
+                {{ detectorReady ? info?.model.name : '未安装' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2">
+              <span class="text-slate-500">识别器</span>
+              <span class="font-medium" :class="recognizer?.available ? 'text-emerald-600' : 'text-amber-600'">
+                {{ recognizer?.available ? `${recognizer.backend} · ${recognizer.charset_size} 类` : '未安装' }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2">
+              <span class="text-slate-500">推理设备</span>
+              <span class="font-medium text-slate-900">{{ info?.system.device || '—' }}</span>
+            </div>
+          </div>
+          <p v-if="recognizer && !recognizer.available" class="mt-3 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
+            <CircleAlert :size="15" class="mt-0.5 shrink-0" />
+            <span>{{ recognizer.note }}</span>
+          </p>
+        </section>
+      </aside>
+
+      <section class="space-y-3">
+        <div class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.22)]">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-base font-semibold text-slate-900">检测画面</h2>
+            <div class="flex items-center gap-2">
+              <div class="flex rounded-xl border border-slate-200 bg-slate-50 p-1 text-xs">
+                <button
+                  class="rounded-lg px-3 py-1.5 font-medium transition"
+                  :class="viewMode === 'annotated' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'"
+                  :disabled="!annotatedUrl"
+                  @click="viewMode = 'annotated'"
+                >
+                  标注图
+                </button>
+                <button
+                  class="rounded-lg px-3 py-1.5 font-medium transition"
+                  :class="viewMode === 'source' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'"
+                  :disabled="!sourceUrl"
+                  @click="viewMode = 'source'"
+                >
+                  原图
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-900/95">
+            <img v-if="previewUrl" :src="previewUrl" alt="检测画面" class="max-h-[560px] w-full object-contain" />
+            <div v-else class="px-6 py-16 text-center text-slate-400">
+              <ScanLine :size="38" class="mx-auto" />
+              <p class="mt-3 text-sm">还没有图片。左侧投放一张含车牌的图片开始检测。</p>
+            </div>
+          </div>
+
+          <div v-if="hasResult" class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 font-medium text-indigo-700">
+              检出 {{ detectResult?.count }} 块
+            </span>
+            <span
+              v-for="[key, value] in colorStats"
+              :key="key"
+              class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600"
+            >
+              {{ key }} · {{ value }}
+            </span>
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">
+              推理 {{ detectResult?.inference_ms }} ms
+            </span>
+            <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-600">
+              {{ detectResult?.image_size[0] }} × {{ detectResult?.image_size[1] }}
+            </span>
+          </div>
+        </div>
+
+        <div class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+          <h2 class="text-base font-semibold text-slate-900">识别结果</h2>
+          <div v-if="!detections.length" class="mt-3 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+            {{ hasResult ? '本帧没有检出车牌' : '等待检测' }}
+          </div>
+          <div v-else class="mt-3 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="px-3 py-2 font-medium">序号</th>
+                  <th class="px-3 py-2 font-medium">车牌号</th>
+                  <th class="px-3 py-2 font-medium">颜色</th>
+                  <th class="px-3 py-2 font-medium">检测置信度</th>
+                  <th class="px-3 py-2 font-medium">识别置信度</th>
+                  <th class="px-3 py-2 font-medium">位置</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in detections" :key="index" class="border-b border-slate-100 last:border-0">
+                  <td class="px-3 py-2 text-slate-500">{{ index + 1 }}</td>
+                  <td class="px-3 py-2 font-semibold text-slate-900">
+                    {{ item.text || '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-slate-600">{{ item.color_cn }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ item.conf.toFixed(3) }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ item.text_score ? item.text_score.toFixed(3) : '—' }}</td>
+                  <td class="px-3 py-2 text-xs text-slate-500">
+                    {{ item.bbox.map((v) => Math.round(v)).join(', ') }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 巡检结果 -->
+    <main v-else class="relative z-10 space-y-4 px-4 pb-8 pt-2 md:px-6">
+      <section v-if="!acceptance" class="rounded-[24px] border border-white bg-white/90 px-6 py-14 text-center shadow-sm">
+        <Layers :size="36" class="mx-auto text-slate-300" />
+        <p class="mt-3 text-sm text-slate-500">
+          {{ loadingAcceptance ? '正在载入巡检结果…' : '还没有可回放的巡检批次。' }}
+        </p>
+      </section>
+
+      <template v-else>
+        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900">最近一次自主巡检</h2>
+              <p class="mt-1 text-xs text-slate-500">
+                {{ acceptance.batch.start }} — {{ acceptance.batch.end }} · 退出码 {{ acceptance.batch.exit_code }} ·
+                {{ acceptance.batch.fsm }}
+              </p>
+            </div>
+            <span class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+              {{ violatedCount }} 辆压线越界 / {{ violations.length }} 辆受检
+            </span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div
+              v-for="card in summaryCards"
+              :key="card.label"
+              class="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3"
+            >
+              <div class="text-xs text-slate-500">{{ card.label }}</div>
+              <div class="mt-1 text-xl font-semibold text-slate-900">{{ card.value }}</div>
+              <div class="mt-1 text-[11px] leading-snug text-slate-500">{{ card.note }}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold text-slate-900">车辆认定</h2>
+            <span class="text-xs text-slate-500">点击缩略图查看识别卡</span>
+          </div>
+          <div class="mt-3 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="px-3 py-2 font-medium">车辆</th>
+                  <th class="px-3 py-2 font-medium">场景实体</th>
+                  <th class="px-3 py-2 font-medium">车牌号</th>
+                  <th class="px-3 py-2 font-medium">置信度</th>
+                  <th class="px-3 py-2 font-medium">拍摄距离</th>
+                  <th class="px-3 py-2 font-medium">腿</th>
+                  <th class="px-3 py-2 font-medium">备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="vehicle in vehicles" :key="vehicle.car" class="border-b border-slate-100 last:border-0">
+                  <td class="px-3 py-2">
+                    <button
+                      v-if="vehicle.card_url"
+                      class="overflow-hidden rounded-lg border border-slate-200 transition hover:border-indigo-400"
+                      @click="showCard(vehicle.card_url)"
+                    >
+                      <img :src="vehicle.card_url" :alt="vehicle.car" class="h-12 w-20 object-cover" />
+                    </button>
+                    <span v-else class="text-slate-500">{{ vehicle.car }}</span>
+                  </td>
+                  <td class="px-3 py-2 text-slate-500">{{ vehicle.real_car }}</td>
+                  <td class="px-3 py-2 font-semibold text-slate-900">{{ vehicle.plate }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ vehicle.confidence.toFixed(3) }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ vehicle.distance_m }} m</td>
+                  <td class="px-3 py-2 text-slate-600">{{ vehicle.leg }}</td>
+                  <td class="px-3 py-2 text-xs text-slate-500">{{ vehicle.note || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold text-slate-900">违停判定</h2>
+            <span class="text-xs text-slate-500">最小余量为负即越界</span>
+          </div>
+          <div class="mt-3 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="px-3 py-2 font-medium">车辆</th>
+                  <th class="px-3 py-2 font-medium">车位</th>
+                  <th class="px-3 py-2 font-medium">横向偏移</th>
+                  <th class="px-3 py-2 font-medium">纵向偏移</th>
+                  <th class="px-3 py-2 font-medium">最小余量</th>
+                  <th class="px-3 py-2 font-medium">形状误差</th>
+                  <th class="px-3 py-2 font-medium">判定</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in violations" :key="row.car" class="border-b border-slate-100 last:border-0">
+                  <td class="px-3 py-2 font-medium text-slate-900">{{ row.car }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ row.slot }}</td>
+                  <td class="px-3 py-2 text-slate-600">{{ row.lateral_m.toFixed(3) }} m</td>
+                  <td class="px-3 py-2 text-slate-600">{{ row.longitudinal_m.toFixed(3) }} m</td>
+                  <td class="px-3 py-2 font-medium" :class="row.margin_m < 0 ? 'text-rose-600' : 'text-emerald-600'">
+                    {{ row.margin_m.toFixed(3) }} m
+                  </td>
+                  <td class="px-3 py-2 text-slate-600">{{ row.shape_error_m.toFixed(3) }} m</td>
+                  <td class="px-3 py-2">
+                    <span
+                      class="rounded-full px-2.5 py-1 text-xs font-medium"
+                      :class="row.margin_m < 0
+                        ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
+                        : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'"
+                    >
+                      {{ row.verdict }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="mt-3 text-xs leading-relaxed text-slate-500">
+            最小余量 = 标准半尺寸 −（车心偏移 + 车体投影半尺寸），负值即越界。形状误差是车牌四点反算的车体四角与真实四角之差。
+          </p>
+        </section>
+
+        <section class="rounded-[24px] border border-indigo-100 bg-indigo-50/60 p-4">
+          <div class="flex items-start gap-3">
+            <Sparkles :size="18" class="mt-0.5 shrink-0 text-indigo-500" />
+            <div class="text-xs leading-relaxed text-indigo-900">
+              <p class="font-semibold">这批结果怎么来的</p>
+              <p class="mt-1">
+                {{ acceptance.retry.触发 }}，系统按轮次补拍 {{ acceptance.retry.补拍 }}，结果 {{ acceptance.retry.结果 }}。
+                同一套流程另有 {{ acceptance.reruns.length }} 轮连续通过，判定口径一致。
+              </p>
+            </div>
+          </div>
+        </section>
+      </template>
+    </main>
+
+    <div
+      v-if="previewCard"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-6"
+      @click="previewCard = ''"
+    >
+      <img :src="previewCard" alt="识别结果卡" class="max-h-full max-w-4xl rounded-xl shadow-2xl" />
+    </div>
+  </div>
+</template>
