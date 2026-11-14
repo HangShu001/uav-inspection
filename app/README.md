@@ -76,6 +76,7 @@ python deploy.py install --backend-only --inference
 | 电杆线路 | `powerapp/wire-pole-seg.pt` |
 | 乔木修剪 | `treeapp/tree-pruning-best.pt` |
 | 建筑外墙 | `wallapp/wall-damage-best.pt` |
+| 车辆车牌（本 fork 新增） | `plateapp/plate-det-best.pt`；字符识别器放 `plateapp/recognizer/`（可选，缺省时只做检测与颜色分类） |
 
 有 NVIDIA GPU 的老师可自行安装与显卡驱动匹配的 PyTorch，然后安装 `uav-inspection-backend/requirements-inference.txt`；不要把本机 CUDA 环境直接打包搬过去。视频浏览器播放取决于编码，H.264 最兼容；需要转码时另行提供 FFmpeg。
 
