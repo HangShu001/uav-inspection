@@ -8,6 +8,9 @@ __pycache__/
 .venv-deploy/
 # 运行时数据与密钥（数据在服务器命名卷，不进仓）
 deploy/.env
+# 本地开发数据目录。app/deployment-layout.json 写的是 ../02-data，从 app/ 往上
+# 推导，实际落在仓库根；只忽略 app/02-data/ 挡不住，启动一次就会多出未跟踪文件。
+02-data/
 app/02-data/
 app/uav-inspection-backend/fendaidata/
 app/uav-inspection-ui/node_modules/
@@ -18,3 +21,7 @@ app/delivery/
 
 # Local account/session database
 app/uav-inspection-backend/auth/
+
+# pip 在部分 Windows 环境会把解包临时目录建在项目里而不是系统临时目录
+pip-unpack-*/
+pip-metadata-*/
