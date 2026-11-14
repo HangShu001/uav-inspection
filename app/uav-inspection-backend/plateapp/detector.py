@@ -15,7 +15,7 @@ import numpy as np
 
 from deployment_paths import backend_path
 from optional_inference import load_yolo_model
-from plateapp.recognizer import plate_recognizer
+from plateapp.recognizer import plate_recognizer, _color_hint, _crop_plate
 
 MODEL_PATH = backend_path('plateapp', 'plate-det-best.pt')
 
@@ -108,6 +108,14 @@ class PlateDetector:
         for result in results:
             for item in self._iter_plates(result):
                 color = resolve_color(item['class_name'])
+                # 检测模型的类别常常只有 'plate' 一类，名字里没有颜色信息。
+                # 这时看牌面底色兜底——绿底 8 位、蓝底 7 位，比标 unknown 有用。
+                if color == 'unknown':
+                    try:
+                        patch = _crop_plate(image_bgr, item['quad'], 120, 32)
+                        color = _color_hint(patch) or 'unknown'
+                    except Exception:
+                        color = 'unknown'
                 stats[color] = stats.get(color, 0) + 1
 
                 text, text_score = None, 0.0
