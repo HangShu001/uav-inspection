@@ -4,6 +4,7 @@ uav-inspection-ui/dist/
 # Python
 __pycache__/
 *.pyc
+.venv/
 .venv-deploy/
 # 运行时数据与密钥（数据在服务器命名卷，不进仓）
 deploy/.env
