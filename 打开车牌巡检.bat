@@ -4,7 +4,7 @@ setlocal
 title 车辆车牌巡检 - 本地启动
 
 set "BACKEND=%~dp0app\uav-inspection-backend"
-set "PY=%BACKEND%\.venv-deploy\Scripts\python.exe"
+set "PY=%~dp0app\.venv-deploy\Scripts\python.exe"
 if not exist "%PY%" set "PY=%BACKEND%\.venv\Scripts\python.exe"
 
 echo ============================================
