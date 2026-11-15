@@ -1,42 +1,45 @@
 @echo off
-chcp 65001 >nul
+chcp 936 >nul 2>&1
 setlocal
-title è½¦è¾†è½¦ç‰Œå·¡æ£€ - æœ¬åœ°å¯åŠ¨
-cd /d "%~dp0app\uav-inspection-backend"
+title ³µÁ¾³µÅÆÑ²¼ì - ±¾µØÆô¶¯
+
+set "BACKEND=%~dp0app\uav-inspection-backend"
+set "PY=%BACKEND%\.venv\Scripts\python.exe"
 
 echo ============================================
-echo   è½¦è¾†è½¦ç‰Œå·¡æ£€å¹³å° - æœ¬åœ°å¯åŠ¨
+echo   ³µÁ¾³µÅÆÑ²¼ìÆ½Ì¨ - ±¾µØÆô¶¯
 echo ============================================
 echo.
 
-if not exist ".venv\Scripts\python.exe" (
-    echo [é”™è¯¯] æ‰¾ä¸åˆ° .venv è™šæ‹Ÿç¯å¢ƒã€‚
-    echo        åº”ä¸ºï¼š%~dp0app\uav-inspection-backend\.venv\Scripts\python.exe
-    echo        å…ˆåœ¨ app ç›®å½•æ‰§è¡Œ setup.bat æˆ–æ‰‹å·¥å»º venv å¹¶è£… requirements.txtã€‚
+if not exist "%PY%" (
+    echo [´íÎó] ÕÒ²»µ½ĞéÄâ»·¾³¡£
+    echo        Ó¦Îª£º%PY%
+    echo        ÏÈÔÚ app Ä¿Â¼Ö´ĞĞ setup.bat£¬»òÊÖ¹¤½¨ venv ²¢×° requirements.txt¡£
     echo.
     pause
     exit /b 1
 )
 
-rem ç«¯å£å·²åœ¨ç›‘å¬ -> è¯´æ˜æœåŠ¡å·²èµ·ï¼Œç›´æ¥æ‰“å¼€é¡µé¢å³å¯ï¼Œä¸é‡å¤å¯åŠ¨
+rem ¶Ë¿ÚÒÑÔÚ¼àÌı -> ·şÎñÒÑÆğ£¬Ö»¿ªÒ³Ãæ²»ÖØ¸´Æô¶¯
 netstat -ano | findstr ":8002 " | findstr "LISTENING" >nul 2>&1
 if %errorlevel%==0 (
-    echo [æç¤º] 8002 ç«¯å£å·²æœ‰æœåŠ¡åœ¨è·‘ï¼Œç›´æ¥æ‰“å¼€é¡µé¢ã€‚
+    echo [ÌáÊ¾] 8002 ÒÑÓĞ·şÎñÔÚÅÜ£¬Ö±½Ó´ò¿ªÒ³Ãæ¡£
     start "" "http://127.0.0.1:8002/plate"
-    timeout /t 2 >nul
+    "%SystemRoot%\System32\timeout.exe" /t 2 >nul
     exit /b 0
 )
 
-echo [1/2] å¯åŠ¨åç«¯ï¼ˆ127.0.0.1:8002ï¼‰...
-echo       è¿™ä¸ªçª—å£è¦ä¸€ç›´å¼€ç€ï¼Œå…³æ‰å°±ç­‰äºåœæ­¢æœåŠ¡ã€‚
+echo [1/2] Æô¶¯ºó¶Ë 127.0.0.1:8002 ...
+echo       Õâ¸ö´°¿ÚÒªÒ»Ö±¿ª×Å£¬¹ØµôµÈÓÚÍ£Ö¹·şÎñ¡£
 echo.
+cd /d "%BACKEND%"
 start "uav-plate-backend" /min ".venv\Scripts\python.exe" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
 
-echo [2/2] ç­‰æœåŠ¡å°±ç»ªåè‡ªåŠ¨æ‰“å¼€é¡µé¢...
+echo [2/2] µÈ·şÎñ¾ÍĞ÷ºó×Ô¶¯´ò¿ªÒ³Ãæ ...
 set /a _try=0
 :WAIT
 set /a _try+=1
-timeout /t 2 >nul
+"%SystemRoot%\System32\timeout.exe" /t 2 >nul
 netstat -ano | findstr ":8002 " | findstr "LISTENING" >nul 2>&1
 if %errorlevel%==0 goto OPEN
 if %_try% GEQ 20 goto TIMEOUT
@@ -45,17 +48,19 @@ goto WAIT
 :OPEN
 start "" "http://127.0.0.1:8002/plate"
 echo.
-echo å·²æ‰“å¼€ http://127.0.0.1:8002/plate
-echo ç™»å½•ï¼šé¡µé¢ä¸Šç‚¹ã€Œé»˜è®¤æ¼”ç¤ºè´¦å·ã€åé¢çš„ã€Œç™»å½•ã€ï¼Œæˆ–æ‰‹å¡« admin / admin123
+echo ÒÑ´ò¿ª http://127.0.0.1:8002/plate
+echo µÇÂ¼£ºµã¡¸Ä¬ÈÏÑİÊ¾ÕËºÅ¡¹ºóÃæµÄ¡¸µÇÂ¼¡¹£¬»òÊÖÌî admin / admin123
 echo.
-echo åœæ­¢æœåŠ¡ï¼šå…³æ‰ä»»åŠ¡æ é‡Œæœ€å°åŒ–çš„ uav-plate-backend çª—å£ã€‚
-timeout /t 6 >nul
+echo Í£Ö¹·şÎñ£º¹ØµôÈÎÎñÀ¸Àï×îĞ¡»¯µÄ uav-plate-backend ´°¿Ú¡£
+"%SystemRoot%\System32\timeout.exe" /t 6 >nul
 exit /b 0
 
 :TIMEOUT
 echo.
-echo [è­¦å‘Š] ç­‰äº† 40 ç§’ 8002 è¿˜æ²¡ç›‘å¬ä¸Šã€‚çœ‹æœ€å°åŒ–çš„ uav-plate-backend çª—å£é‡ŒæŠ¥äº†ä»€ä¹ˆã€‚
-echo        å¸¸è§åŸå› ï¼šä¾èµ–æ²¡è£…å…¨ï¼ˆå…ˆè·‘ setup.batï¼‰ã€ç«¯å£è¢«åˆ«çš„ç¨‹åºå ç”¨ã€‚
+echo [¾¯¸æ] µÈÁË 40 Ãë 8002 »¹Ã»¼àÌıÉÏ¡£
+echo        ÔÚ backend Ä¿Â¼ÊÖ¹¤ÅÜÒ»´Î¿´±¨´í£º
+echo          cd /d "%BACKEND%"
+echo          ".venv\Scripts\python.exe" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
 echo.
 pause
 exit /b 2
