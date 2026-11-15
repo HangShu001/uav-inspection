@@ -123,6 +123,104 @@ export interface AcceptanceData {
   retry: { 轮次: number; 触发: string; 补拍: string; 结果: string }
 }
 
+export interface ReplayPhase {
+  key: string
+  label: string
+  kind: string
+  t0: number
+  t1: number
+  seconds: number
+  detail: string
+  cover: string
+}
+
+export interface ReplayEvent {
+  t: number
+  kind: string
+  text: string
+}
+
+export interface ReplayData {
+  available?: boolean
+  mission: {
+    run: string
+    id: string
+    started_at: string
+    scenario: string
+    platform: string
+    barrier: string
+  }
+  kpi: {
+    final: string
+    note: string
+    c_cap: number
+    n_cars: number
+    n_captured: number
+    missing: string[]
+    inspect_round: number
+    rounds: Array<{
+      ok: boolean
+      rc: number
+      run_dir: string
+      cars: number
+      captured: number
+      new: number
+      reason: string
+    }>
+  }
+  budget: { wall_clock_s: number; elapsed_s: number; budget_s: number }
+  video: {
+    src: string
+    poster: string
+    seconds: number
+    frames: number
+    fps: number
+    size: string
+    offset_s: number
+    note: string
+  }
+  phases: ReplayPhase[]
+  events: ReplayEvent[]
+}
+
+export interface CoverageData {
+  available?: boolean
+  source: {
+    map_dir: string
+    frames_used: number | null
+    cell_m: number
+    grid: number[]
+    rect: number[]
+    note: string
+  }
+  area: { site_cells: number; car_cells: number; observable_cells: number }
+  coverage: Array<{ min_frames: number; cells: number; ratio: number }>
+  depth: {
+    frames_p50: number
+    frames_p95: number
+    dist_p50: number
+    dist_p95: number
+    pts_p50: number
+  }
+  rows: Array<{
+    label: string
+    x: number
+    cells: number
+    ge1: number
+    ge3: number
+    median_frames: number
+  }>
+  slots: Array<{
+    name: string
+    x: number
+    y: number
+    frames: number
+    points: number
+    min_dist: number
+  }>
+  image: string
+}
+
 export const plateApi = {
   getHealth() {
     return request<{
@@ -172,5 +270,11 @@ export const plateApi = {
   },
   getAcceptance() {
     return request<AcceptanceData>({ url: '/plate/acceptance', method: 'GET' })
+  },
+  getReplay() {
+    return request<ReplayData>({ url: '/plate/replay', method: 'GET' })
+  },
+  getCoverage() {
+    return request<CoverageData>({ url: '/plate/coverage', method: 'GET' })
   },
 }

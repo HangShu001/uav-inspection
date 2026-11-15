@@ -1,23 +1,33 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { CircleAlert, ImageUp, Layers, RefreshCw, ScanLine, Sparkles } from 'lucide-vue-next'
 import InspectionHeader from '../components/common/InspectionHeader.vue'
 import FloatingNotice from '../components/common/FloatingNotice.vue'
 import {
   plateApi,
   type AcceptanceData,
+  type CoverageData,
   type PlateDetectResult,
   type PlateInfoResult,
   type RecognizerStatus,
+  type ReplayData,
+  type ReplayPhase,
 } from '../api1/plate'
 
-type TabKey = 'detect' | 'result'
+type TabKey = 'detect' | 'result' | 'replay' | 'coverage'
 
 const activeTab = ref<TabKey>('detect')
 const online = ref<boolean | null>(null)
 const info = ref<PlateInfoResult | null>(null)
 const acceptance = ref<AcceptanceData | null>(null)
 const loadingAcceptance = ref(false)
+const replay = ref<ReplayData | null>(null)
+const loadingReplay = ref(false)
+const replayError = ref('')
+const coverage = ref<CoverageData | null>(null)
+const loadingCoverage = ref(false)
+const videoEl = ref<HTMLVideoElement | null>(null)
+const videoTime = ref(0)
 const detectResult = ref<PlateDetectResult | null>(null)
 const sourceUrl = ref('')
 const sourceName = ref('')
@@ -168,6 +178,81 @@ function showCard(url: string | null) {
   previewCard.value = url || ''
 }
 
+// ---------------- 过程回放 / 覆盖质量 ----------------
+
+async function loadReplay() {
+  if (loadingReplay.value) return
+  loadingReplay.value = true
+  replayError.value = ''
+  try {
+    const result = await plateApi.getReplay()
+    replay.value = result.data?.available === false ? null : (result.data ?? null)
+    if (!replay.value) replayError.value = '服务端没有找到 timeline.json，回放数据不可用。'
+  } catch (err) {
+    replay.value = null
+    replayError.value = err instanceof Error ? err.message : '回放数据加载失败'
+  } finally {
+    loadingReplay.value = false
+  }
+}
+
+async function loadCoverage() {
+  if (loadingCoverage.value) return
+  loadingCoverage.value = true
+  try {
+    const result = await plateApi.getCoverage()
+    coverage.value = result.data?.available === false ? null : (result.data ?? null)
+  } catch {
+    coverage.value = null
+  } finally {
+    loadingCoverage.value = false
+  }
+}
+
+function fmtTime(sec: number) {
+  const total = Math.max(0, Math.round(sec))
+  const m = Math.floor(total / 60)
+  return `${m}:${String(total % 60).padStart(2, '0')}`
+}
+
+function onVideoTime(e: Event) {
+  videoTime.value = (e.target as HTMLVideoElement).currentTime
+}
+
+/** 墙钟秒 → 视频秒要减去录屏起始偏移，否则整条时间轴会早 30 秒 */
+function seekToPhase(ph: ReplayPhase) {
+  const el = videoEl.value
+  if (!el) return
+  const offset = replay.value?.video.offset_s ?? 0
+  const target = Math.max(0, ph.t0 - offset)
+  el.currentTime = target
+  videoTime.value = target
+  void el.play().catch(() => undefined)
+}
+
+const phaseCursor = computed(() => {
+  const phases = replay.value?.phases ?? []
+  const offset = replay.value?.video.offset_s ?? 0
+  const wall = videoTime.value + offset
+  for (let i = 0; i < phases.length; i += 1) {
+    if (wall >= phases[i].t0 && wall < phases[i].t1) return i
+  }
+  return phases.length ? phases.length - 1 : -1
+})
+
+const coverageRows = computed(() => coverage.value?.rows ?? [])
+const coverageSlots = computed(() => coverage.value?.slots ?? [])
+const budgetUsedPct = computed(() => {
+  const b = replay.value?.budget
+  if (!b || !b.budget_s) return 0
+  return Math.min(100, Math.round((b.wall_clock_s / b.budget_s) * 100))
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'replay' && !replay.value && !loadingReplay.value) void loadReplay()
+  if (tab === 'coverage' && !coverage.value && !loadingCoverage.value) void loadCoverage()
+})
+
 onMounted(async () => {
   await refreshHealth()
   await loadInfo()
@@ -204,6 +289,24 @@ onUnmounted(() => {
             @click="activeTab = 'result'"
           >
             巡检结果
+          </button>
+          <button
+            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
+            :class="activeTab === 'replay'
+              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
+              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
+            @click="activeTab = 'replay'"
+          >
+            过程回放
+          </button>
+          <button
+            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
+            :class="activeTab === 'coverage'
+              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
+              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
+            @click="activeTab = 'coverage'"
+          >
+            覆盖质量
           </button>
           <button
             class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50"
@@ -383,7 +486,7 @@ onUnmounted(() => {
     </main>
 
     <!-- 巡检结果 -->
-    <main v-else class="relative z-10 space-y-4 px-4 pb-8 pt-2 md:px-6">
+    <main v-else-if="activeTab === 'result'" class="relative z-10 space-y-4 px-4 pb-8 pt-2 md:px-6">
       <section v-if="!acceptance" class="rounded-[24px] border border-white bg-white/90 px-6 py-14 text-center shadow-sm">
         <Layers :size="36" class="mx-auto text-slate-300" />
         <p class="mt-3 text-sm text-slate-500">
@@ -521,6 +624,229 @@ onUnmounted(() => {
           </div>
         </section>
       </template>
+    </main>
+
+    <!-- 过程回放 -->
+    <main
+      v-else-if="activeTab === 'replay'"
+      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px]"
+    >
+      <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+        <div v-if="loadingReplay" class="py-24 text-center text-slate-500">正在载入回放…</div>
+        <div v-else-if="!replay" class="py-24 text-center text-slate-500">
+          {{ replayError || '没有可用的回放数据。' }}
+        </div>
+        <template v-else>
+          <div class="flex flex-wrap items-start justify-between gap-2 pb-3">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-indigo-400">MISSION REPLAY</p>
+              <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ replay.mission.scenario }}</h2>
+            </div>
+            <div class="text-right text-xs leading-relaxed text-slate-500">
+              <p>{{ replay.mission.started_at }} 起</p>
+              <p>{{ replay.mission.platform }} · {{ replay.mission.barrier }}</p>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-2xl bg-slate-900">
+            <video
+              ref="videoEl"
+              :src="replay.video.src"
+              :poster="replay.video.poster"
+              controls
+              playsinline
+              preload="metadata"
+              class="aspect-video w-full bg-slate-900"
+              @timeupdate="onVideoTime"
+            />
+          </div>
+
+          <div class="mt-4">
+            <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+              <h3 class="text-sm font-semibold text-slate-800">阶段时间轴（点一下跳到该阶段）</h3>
+              <span class="font-mono text-xs text-slate-500">
+                {{ fmtTime(videoTime) }} / {{ fmtTime(replay.video.seconds) }}
+                · 录屏比任务晚 {{ replay.video.offset_s }} s
+              </span>
+            </div>
+            <div class="flex gap-1">
+              <button
+                v-for="(ph, i) in replay.phases"
+                :key="ph.key"
+                class="group relative h-20 min-w-[74px] overflow-hidden rounded-xl border text-left transition"
+                :class="i === phaseCursor
+                  ? 'border-indigo-400 ring-2 ring-indigo-300'
+                  : 'border-slate-200 hover:border-indigo-300'"
+                :style="{ flexGrow: ph.seconds }"
+                @click="seekToPhase(ph)"
+              >
+                <img :src="ph.cover" :alt="ph.label" class="absolute inset-0 h-full w-full object-cover opacity-70" />
+                <span class="absolute inset-0 bg-gradient-to-t from-slate-900/85 via-slate-900/25 to-transparent" />
+                <span class="relative flex h-full flex-col justify-end p-2">
+                  <span class="text-[11px] font-semibold leading-tight text-white">{{ ph.label }}</span>
+                  <span class="text-[10px] text-white/75">{{ fmtTime(ph.t0) }} · {{ ph.seconds }} s</span>
+                </span>
+              </button>
+            </div>
+            <p class="mt-2 text-[11px] leading-relaxed text-slate-500">
+              录屏是固定监控机位俯视（场地内侧上空 19 m），不是机载视角；无人机在画面里只是个移动的小点。
+              时间轴按墙钟切段，点段首会跳转，但前 {{ replay.video.offset_s }} s 任务已经起飞、录屏还没开始。
+            </p>
+          </div>
+        </template>
+      </section>
+
+      <aside class="space-y-3">
+        <section
+          v-if="replay"
+          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">任务结果</h3>
+          <dl class="mt-3 space-y-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-slate-500">终态</dt>
+              <dd class="font-semibold text-emerald-600">{{ replay.kpi.final }} · {{ replay.kpi.note }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-slate-500">清单 / 拍成</dt>
+              <dd class="font-mono text-slate-800">{{ replay.kpi.n_cars }} / {{ replay.kpi.n_captured }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-slate-500">INSPECT 轮次</dt>
+              <dd class="font-mono text-slate-800">{{ replay.kpi.inspect_round }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-slate-500">墙钟 / 预算</dt>
+              <dd class="font-mono text-slate-800">{{ replay.budget.wall_clock_s }} / {{ replay.budget.budget_s }} s</dd>
+            </div>
+          </dl>
+          <div class="mt-3">
+            <div class="h-2 overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-indigo-500" :style="{ width: budgetUsedPct + '%' }" />
+            </div>
+            <p class="mt-1 text-[11px] text-slate-500">用掉预算的 {{ budgetUsedPct }}%</p>
+          </div>
+          <div class="mt-3 space-y-1 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+            <p v-for="(rd, i) in replay.kpi.rounds" :key="i">
+              第 {{ i + 1 }} 轮：拍成 {{ rd.captured }} / {{ rd.cars }} 辆，rc={{ rd.rc }}
+            </p>
+          </div>
+        </section>
+
+        <section
+          v-if="replay"
+          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">关键事件</h3>
+          <ul class="mt-2 max-h-[300px] space-y-1.5 overflow-auto pr-1 text-[11px] leading-snug">
+            <li v-for="(ev, i) in replay.events" :key="i" class="flex gap-2">
+              <span class="w-10 shrink-0 font-mono text-slate-400">{{ fmtTime(ev.t) }}</span>
+              <span :class="ev.kind === 'fsm' ? 'text-indigo-600' : 'text-slate-600'">{{ ev.text }}</span>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <!-- 覆盖质量 -->
+    <main
+      v-else-if="activeTab === 'coverage'"
+      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px]"
+    >
+      <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+        <div v-if="loadingCoverage" class="py-24 text-center text-slate-500">正在载入覆盖质量…</div>
+        <div v-else-if="!coverage" class="py-24 text-center text-slate-500">没有可用的覆盖质量数据。</div>
+        <template v-else>
+          <div class="flex flex-wrap items-baseline justify-between gap-2 pb-3">
+            <div>
+              <p class="text-xs uppercase tracking-[0.3em] text-indigo-400">L4 COVERAGE</p>
+              <h2 class="mt-1 text-lg font-semibold text-slate-900">可观测区覆盖质量</h2>
+            </div>
+            <p class="text-xs text-slate-500">
+              栅格 {{ coverage.source.cell_m }} m · 观测 {{ coverage.source.frames_used }} 帧 · {{ coverage.source.grid[0] }}×{{ coverage.source.grid[1] }}
+            </p>
+          </div>
+          <img :src="coverage.image" alt="L4 覆盖质量热力图" class="w-full rounded-2xl border border-slate-200" />
+          <p class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ coverage.source.note }}。</p>
+        </template>
+      </section>
+
+      <aside class="space-y-3">
+        <section
+          v-if="coverage"
+          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">分级占比</h3>
+          <p class="mt-1 text-[11px] text-slate-500">
+            分母 {{ coverage.area.observable_cells }} 格 = 场地 {{ coverage.area.site_cells }} − 车体 {{ coverage.area.car_cells }}
+          </p>
+          <div v-for="tier in coverage.coverage" :key="tier.min_frames" class="mt-2.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-600">{{ tier.min_frames }} 帧以上</span>
+              <span class="font-mono text-slate-800">{{ tier.ratio }}%</span>
+            </div>
+            <div class="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-indigo-500" :style="{ width: tier.ratio + '%' }" />
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+            <p>中位观测 {{ coverage.depth.frames_p50 }} 帧</p>
+            <p>P95 {{ coverage.depth.frames_p95 }} 帧</p>
+            <p>最近距离中位 {{ coverage.depth.dist_p50 }} m</p>
+            <p>P95 {{ coverage.depth.dist_p95 }} m</p>
+          </div>
+        </section>
+
+        <section
+          v-if="coverage"
+          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">分排质量</h3>
+          <table class="mt-2 w-full text-xs">
+            <thead class="text-slate-500">
+              <tr>
+                <th class="py-1 text-left font-medium">排</th>
+                <th class="py-1 text-right font-medium">中位帧</th>
+                <th class="py-1 text-right font-medium">3 帧以上</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in coverageRows" :key="row.label" class="border-t border-slate-100">
+                <td class="py-1 text-slate-700">{{ row.label }}</td>
+                <td class="py-1 text-right font-mono text-slate-700">{{ row.median_frames }}</td>
+                <td class="py-1 text-right font-mono text-slate-700">{{ row.ge3 }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section
+          v-if="coverage"
+          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+        >
+          <h3 class="text-sm font-semibold text-slate-800">车位处质量</h3>
+          <div class="mt-2 max-h-[240px] overflow-auto">
+            <table class="w-full text-[11px]">
+              <thead class="sticky top-0 bg-white text-slate-500">
+                <tr>
+                  <th class="py-1 text-left font-medium">车位</th>
+                  <th class="py-1 text-right font-medium">帧</th>
+                  <th class="py-1 text-right font-medium">点</th>
+                  <th class="py-1 text-right font-medium">最近 m</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="slot in coverageSlots" :key="slot.name" class="border-t border-slate-100">
+                  <td class="py-1 text-slate-700">{{ slot.name }}</td>
+                  <td class="py-1 text-right font-mono">{{ slot.frames }}</td>
+                  <td class="py-1 text-right font-mono">{{ slot.points }}</td>
+                  <td class="py-1 text-right font-mono">{{ slot.min_dist }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </aside>
     </main>
 
     <div

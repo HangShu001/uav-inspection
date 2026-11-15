@@ -21,6 +21,12 @@ DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 ACCEPTANCE_PATH = DATA_DIR / 'acceptance.json'
 CARDS_DIR = DATA_DIR / 'cards'
 
+# 过程回放与覆盖质量（2026-11-15 加）。timeline/coverage 是离线脚本产出的 JSON，
+# 媒体（回放视频、阶段封面、热力图）走 /api/v1/plate/media 静态挂载。
+TIMELINE_PATH = DATA_DIR / 'timeline.json'
+COVERAGE_PATH = DATA_DIR / 'coverage.json'
+MEDIA_DIR = DATA_DIR / 'media'
+
 # 视频检测是同步执行的，必须有明确上限，否则一个大文件就能把工作进程占满。
 MAX_VIDEO_FRAMES = 40
 MAX_VIDEO_SECONDS = 60.0
@@ -46,6 +52,17 @@ def _load_acceptance() -> dict[str, Any] | None:
         return json.loads(ACCEPTANCE_PATH.read_text(encoding='utf-8'))
     except Exception:
         return None
+
+
+def _load_json_file(path: Path) -> dict[str, Any] | None:
+    """读离线脚本产出的 JSON；坏文件按「没有」处理，不让页面 500。"""
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 @router.get('/health')
@@ -237,4 +254,46 @@ async def plate_acceptance() -> dict[str, object]:
     for vehicle in payload.get('vehicles', []):
         card = vehicle.get('card')
         vehicle['card_url'] = prefixed(f'/api/v1/plate/cards/{card}') if card else None
+    return {'code': 200, 'message': 'success', 'data': payload}
+
+
+@router.get('/replay')
+async def plate_replay() -> dict[str, object]:
+    """任务过程回放：阶段时间轴 + 回放视频地址 + 关键事件。
+
+    数据由 ai/analysis/v4e_timeline_20261115.py 从 driver.log 与 fsm.json 解析，
+    视频是 watch_raw.mp4 压到 854x480 / CRF 32（200 MB → 2.6 MB）。
+    """
+    payload = _load_json_file(TIMELINE_PATH)
+    if payload is None:
+        return {'code': 404, 'message': '未找到回放数据',
+                'data': {'available': False}}
+
+    video = payload.get('video') or {}
+    for key in ('src', 'poster'):
+        if video.get(key):
+            video[key] = prefixed(str(video[key]))
+    payload['video'] = video
+
+    for phase in payload.get('phases') or []:
+        if phase.get('cover'):
+            phase['cover'] = prefixed(str(phase['cover']))
+
+    return {'code': 200, 'message': 'success', 'data': payload}
+
+
+@router.get('/coverage')
+async def plate_coverage() -> dict[str, object]:
+    """L4 覆盖质量：可观测区格数、各帧数门限占比、分排统计、15 车位质量。
+
+    分母口径：贴墙矩形（x±13.7 / y±9.2）再扣掉 7 辆车体遮挡区。
+    不扣车体会把物理上必然看不到的车底格算进分母，把覆盖率压低约 3 个点。
+    """
+    payload = _load_json_file(COVERAGE_PATH)
+    if payload is None:
+        return {'code': 404, 'message': '未找到覆盖质量数据',
+                'data': {'available': False}}
+
+    if payload.get('image'):
+        payload['image'] = prefixed(str(payload['image']))
     return {'code': 200, 'message': 'success', 'data': payload}

@@ -80,6 +80,10 @@ app.mount('/api/v1/wall/media', StaticFiles(directory=WALL_MEDIA_PATH), name='wa
 app.mount('/api/v1/pruning/media', StaticFiles(directory=PRUNING_MEDIA_PATH), name='pruning_media')
 plate_detect.CARDS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount('/api/v1/plate/cards', StaticFiles(directory=plate_detect.CARDS_DIR), name='plate_cards')
+# 过程回放素材（replay.mp4 / 阶段封面 / 覆盖热力图）。StaticFiles 自带 Range 支持，
+# 视频拖进度条要靠它；用 FileResponse 手写端点反而不稳。
+plate_detect.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+app.mount('/api/v1/plate/media', StaticFiles(directory=plate_detect.MEDIA_DIR), name='plate_media')
 app.mount('/rose-pictures', StaticFiles(directory=ROSE_PICTURES_PATH), name='rose_pictures')
 
 app.include_router(ws_agent.router, prefix='/ws/v1', tags=['Agent对话'])
