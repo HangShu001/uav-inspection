@@ -197,3 +197,42 @@ npm run dev
 - **页面视觉没有截图确认**。开发机的浏览器截图接口返回「exceeds the 10 MiB
   image limit」，DOM 快照工具只暴露 `<a>` 元素、拿不到按钮卡片。改用类型检查、
   构建产物文案核对、路由守卫与接口实测替代，这不等于人工看过页面。
+
+## 七、分发给别人
+
+源码 8.1 MB，加上预构建前端（3.1 MB）与车牌三个权重（25 MB），打成一个 zip 约 29 MB，
+解压即用。**接收方不需要 Node.js**，只要 Python 3.10~3.13。
+
+三步：`首次安装.bat` →（可选，要做真检测才需要）`安装推理依赖.bat` → `打开车牌巡检.bat`。
+
+**两个必须知道的坑（2026-11-15 实测）**：
+
+1. **官方 PyPI 在国内基本连不上**。`files.pythonhosted.org` 报
+   `SSLEOFError(8, 'UNEXPECTED_EOF_WHILE_READING')`，自动重试五次后失败，一个包都没落地。
+   同一份 requirements 换阿里云镜像 **38 s 装完 55 个包**。所以 `首次安装.bat`
+   默认走阿里云、失败才退回官方源，并设 `PIP_NO_CACHE_DIR=1`（某些环境清理下载缓存
+   会被权限拦，`--no-cache-dir` 直接绕开这条路径）。
+
+2. **不要用 `app/scripts/build_delivery.py` 打这个 fork 的数据包**。
+   它按 `app/uav-inspection-backend/<模块>/` 找权重，而本 fork 的
+   `app/deployment-layout.json` 把数据根指向了仓库根的 `02-data/`，
+   `--dry-run` 直接显示 `data: 0 files`。源码包可以用它
+   （`--root app --without-data`），数据包只能手工装配：把
+   `02-data/uav-inspection-backend/plateapp/` 下的 `plate-det-best.pt` 与
+   `recognizer/{model.onnx,charset.txt}` 拷到解压后的同名目录即可。
+
+**包内结构**：
+
+```
+uav-plate-demo/
+  接收方必读.md
+  首次安装.bat / 安装推理依赖.bat / 打开车牌巡检.bat
+  app/                                      ← 源码 + 预构建的 ui/dist/
+  02-data/uav-inspection-backend/plateapp/  ← 三个权重
+```
+
+**验证口径**（换一台机器复现时应看到同样的结果）：解压到任意目录，用
+`app/.venv-deploy` 里的 Python 起 `uvicorn heatmapapp.main:app --port 8002`，
+`/plate` 返回 200；只装基础依赖时 `/api/v1/plate/detect/upload` 返回 503 并提示缺推理依赖；
+装完 `--inference` 后同一接口对 `plateapp/data/cards/car_6.jpg` 返回
+`皖ACS122`（绿）与 `皖5021`（蓝，背景车，部分遮挡）。
