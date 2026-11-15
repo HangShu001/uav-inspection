@@ -4,7 +4,8 @@ setlocal
 title 车辆车牌巡检 - 本地启动
 
 set "BACKEND=%~dp0app\uav-inspection-backend"
-set "PY=%BACKEND%\.venv\Scripts\python.exe"
+set "PY=%BACKEND%\.venv-deploy\Scripts\python.exe"
+if not exist "%PY%" set "PY=%BACKEND%\.venv\Scripts\python.exe"
 
 echo ============================================
 echo   车辆车牌巡检平台 - 本地启动
@@ -14,7 +15,7 @@ echo.
 if not exist "%PY%" (
     echo [错误] 找不到虚拟环境。
     echo        应为：%PY%
-    echo        先在 app 目录执行 setup.bat，或手工建 venv 并装 requirements.txt。
+    echo        先在 app 目录执行 setup.bat（生成 .venv-deploy 与前端产物）
     echo.
     pause
     exit /b 1
@@ -33,7 +34,7 @@ echo [1/2] 启动后端 127.0.0.1:8002 ...
 echo       这个窗口要一直开着，关掉等于停止服务。
 echo.
 cd /d "%BACKEND%"
-start "uav-plate-backend" /min ".venv\Scripts\python.exe" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
+start "uav-plate-backend" /min "%PY%" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
 
 echo [2/2] 等服务就绪后自动打开页面 ...
 set /a _try=0
@@ -60,7 +61,7 @@ echo.
 echo [警告] 等了 40 秒 8002 还没监听上。
 echo        在 backend 目录手工跑一次看报错：
 echo          cd /d "%BACKEND%"
-echo          ".venv\Scripts\python.exe" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
+echo          "%PY%" -m uvicorn heatmapapp.main:app --host 127.0.0.1 --port 8002
 echo.
 pause
 exit /b 2

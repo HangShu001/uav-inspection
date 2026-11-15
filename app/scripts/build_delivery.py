@@ -210,6 +210,14 @@ def collect_files(root: Path, include_data: bool = True) -> list[Entry]:
                 if path.suffix.lower() in UI_ASSET_SUFFIXES or path.name in {"robots.txt", "manifest.json"}:
                     add(path, "app")
 
+    # 车牌模块内置的一次真实验收回放（acceptance/timeline/coverage JSON、7 张结果卡、
+    # 过程视频与封面）随源码走，不进 02-data——它是功能的一部分，不是可选素材。
+    # 注意 backend 目录的收集只认 *.py，不补这段会整块丢掉。
+    plate_data = backend / "plateapp" / "data"
+    for path in walk_files(plate_data):
+        if path.suffix.lower() in TEXT_SOURCE_SUFFIXES | UI_ASSET_SUFFIXES | {".mp4"}:
+            add(path, "app")
+
     if include_data:
         for folder in RUNTIME_DIRS:
             for path in walk_files(backend / folder):
