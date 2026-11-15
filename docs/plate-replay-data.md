@@ -77,7 +77,38 @@ python scripts/build_replay.py timeline \
 **本机没有 ffmpeg**（`where ffmpeg` 为空），所以这一步目前只能在大机器上做，或先装
 ffmpeg 再加进本脚本。这是补齐交付链路的下一个缺口。
 
-## 五、和 `output/v2demo_web` 的关系
+## 五、交付自检（`scripts/check_replay_data.py`）
+
+三个 JSON 是分批塞进来的，彼此没有约束。跑一次自检把「能不能演示」变成可执行判定：
+
+```bash
+python scripts/check_replay_data.py            # 默认查 plateapp/data
+python scripts/check_replay_data.py --strict-batch   # 两处批次不同即 FAIL
+```
+
+查 7 类：JSON 可解析、引用的素材存在且非空、**MP4 真实时长**（直接解 `mvhd` box，
+不需要 ffmpeg）与 `video.seconds` 是否一致、`phases` 区间自洽且不越界、
+`kpi` 汇总数与 rounds 一致、`coverage` 的 `cells/observable` 与 `ratio` 自洽、
+`acceptance` 车辆数与缩略图齐全、两处批次是否同一跑次。
+
+**2026-11-16 首次运行结果**：11 项通过、1 个 WARN、0 个 FAIL。唯一 WARN 是批次不一致
+（见下），其余全过——包括 `replay.mp4` 实测 **1304.5 s** 与声明完全一致
+（2.6 MB 的片子确实是 1304 s，压缩率高但时长没错）。
+
+### 已知的批次不一致（WARN，未修）
+
+| 位置 | 批次 | 起始 |
+|---|---|---|
+| `acceptance.json` → 巡检结果 tab | `p10_v2_final2_20261114` | 19:39:07 |
+| `timeline.json` → 过程回放 tab | `p9_v2_final_20261114` | 19:09:47 |
+
+两处展示的不是同一跑次。**2026-11-16 已在前端加提示**：回放页头显示 `mission.run`，
+并在两者不同时挂一枚琥珀色说明「回放批次 ≠ 巡检结果批次」。不再让它在页面上悄悄过去。
+
+根治要等能连上实机：用 p10 的 `record.log` + `fsm.json` 重跑
+`build_replay.py timeline`，把两份数据对齐到同一跑次。
+
+## 六、和 `output/v2demo_web` 的关系
 
 那个目录是**另一个东西**：v2.0 验收汇报页，零依赖 `http.server`，读的是
 `p7_v2_accept_20261113`（11-13 那轮）。本仓库回放读的是 `p10_v2_final2_20261114`

@@ -66,6 +66,17 @@ const batchLabel = computed(() => {
   if (!batch) return '尚未载入巡检批次'
   return `${batch.start} 起 · ${batch.fsm}`
 })
+// 「巡检结果」与「过程回放」是两份独立 JSON，可能来自不同跑次（2026-11-16 实测：
+// 结果 p10_v2_final2_20261114、回放 p9_v2_final_20261114）。不同就必须在页面上说出来，
+// 否则演示时两处时间对不上却没人知道为什么。
+const acceptanceRun = computed(() => {
+  const dir = (acceptance.value?.batch?.batch_dir ?? '').replace(/[\\/]+$/, '')
+  return dir.split(/[\\/]/).pop() ?? ''
+})
+const replayRun = computed(() => replay.value?.mission?.run ?? '')
+const batchMismatch = computed(
+  () => Boolean(acceptanceRun.value && replayRun.value && acceptanceRun.value !== replayRun.value),
+)
 const statusText = computed(() => {
   if (online.value === false) return '后端离线'
   if (busy.value) return '正在推理'
@@ -643,8 +654,16 @@ onUnmounted(() => {
               <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ replay.mission.scenario }}</h2>
             </div>
             <div class="text-right text-xs leading-relaxed text-slate-500">
+              <p class="font-mono text-[11px] text-slate-600">{{ replay.mission.run }}</p>
               <p>{{ replay.mission.started_at }} 起</p>
               <p>{{ replay.mission.platform }} · {{ replay.mission.barrier }}</p>
+              <p
+                v-if="batchMismatch"
+                class="mt-1 inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-amber-200"
+                :title="`巡检结果批次 ${acceptanceRun}，过程回放批次 ${replayRun}，两者不是同一跑次`"
+              >
+                回放批次 ≠ 巡检结果批次（{{ acceptanceRun }}）
+              </p>
             </div>
           </div>
 
