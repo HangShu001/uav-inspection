@@ -13,6 +13,11 @@ from roseapp.detector import _resolve_model_path
 from vegetationapp import api as vegetation
 
 VIDEO_SUFFIXES = {'.mp4', '.avi', '.mov', '.mkv', '.webm'}
+# 车辆车牌巡检的输入本来就是单张照片（逐腿精拍），它的缺项文案写的是「巡检照片或视频」，
+# 但早先只按 VIDEO_SUFFIXES 判定：用户把照片传进 plate-media 后提示仍然在，属于判定与
+# 文案不一致的缺陷（2026-11-15 修）。这里给图片单独一套后缀，只被 plate 模块使用，
+# 不动其它模块原有的「必须视频」语义。
+IMAGE_SUFFIXES = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
 MODEL_PATHS = {
     'heatmap': lambda: backend_path('heatmapweight', 'renliu.pt'),
     'rose': _resolve_model_path,
@@ -27,6 +32,13 @@ MODEL_PATHS = {
 def _has_video(root: Path, recursive: bool = False) -> bool:
     files = root.rglob('*') if recursive else root.glob('*')
     return any(p.is_file() and p.suffix.lower() in VIDEO_SUFFIXES for p in files)
+
+
+def _has_media(root: Path, recursive: bool = False) -> bool:
+    """视频或图片任一即可（用于「巡检照片或视频」这类两者皆可的模块）。"""
+    files = root.rglob('*') if recursive else root.glob('*')
+    allowed = VIDEO_SUFFIXES | IMAGE_SUFFIXES
+    return any(p.is_file() and p.suffix.lower() in allowed for p in files)
 
 
 def _paired_task(root: Path) -> bool:
@@ -110,7 +122,7 @@ def module_status() -> dict[str, dict]:
     entry('rose-digital', '数字玫瑰园', '/rose-digital', 'demo', [], '页面展示内置示例地块数据。')
 
     plate_missing = []
-    if not _has_video(backend_path('platedata', 'media')):
+    if not _has_media(backend_path('platedata', 'media')):
         plate_missing.append(requirement('巡检照片或视频', 'plate-media'))
     if not MODEL_PATHS['plate']().is_file():
         plate_missing.append(requirement(f'检测模型 {MODEL_PATHS["plate"]().name}', 'plate-model'))

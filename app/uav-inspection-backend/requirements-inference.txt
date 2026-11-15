@@ -1,7 +1,33 @@
 # Optional real AI inference. Install base requirements first.
 # deploy.py install --inference installs CPU Torch before this file.
 # GPU users should install the matching Torch build explicitly instead.
+#
+# 【2026-11-15 装机实测的两个坑】
+#
+# 1) 镜像源选择性缺包，整份文件一起装会卡死：
+#    - 清华源（pypi.tuna.tsinghua.edu.cn）：torch 2.9.1 与 ultralytics 全部版本
+#      都报 "from versions: none"，pip 会长时间停在解析阶段、一个包都不落地。
+#    - 阿里源（mirrors.aliyun.com/pypi/simple/）：onnxruntime 可装；ultralytics 未验。
+#    - 官方源：ultralytics、onnxruntime 的 metadata 偶发
+#      SSLError UNEXPECTED_EOF_WHILE_READING，重试即可，别当成"装不上"。
+#    建议分开装、并显式指定源。
+#
+# 2) venv 若设了 include-system-site-packages = true（本机 .venv 就是），
+#    系统 conda 环境里已有的 torch 会直接被复用，此时**不要**再按本文件装 torch——
+#    只补缺的那几个即可：
+#        pip install ultralytics==8.3.248 lapx --no-warn-script-location
+#        pip install onnxruntime --index-url https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+#    实测：这条路径只下载 1.2 MB(ultralytics) + 0.6 MB(lapx) + 54 MB(polars)
+#          + 15 MB(onnxruntime)，22 分钟的全量安装变成 2 分钟。
+#
+# 3) 识别器（recognizer）的 ONNX 后端需要 onnxruntime，原先这份文件里没有它，
+#    会导致「检测器已加载、识别器不可用」——车牌文本出不来。已补在下面。
+#
+# 4) ultralytics 首次 import 会往 %APPDATA%\Ultralytics 建配置目录，受限权限下抛
+#    PermissionError: [WinError 5]，且会被吞成「AI 推理依赖未安装」的误导性报错。
+#    optional_inference.load_yolo_model() 已改为自动指向数据目录的 yolo-config/。
 torch==2.9.1
 torchvision==0.24.1
 ultralytics==8.3.248
 lapx==0.9.4
+onnxruntime

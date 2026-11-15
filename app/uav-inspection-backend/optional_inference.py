@@ -1,9 +1,12 @@
 """Load the optional AI runtime only when an inference operation needs it."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 from importlib.util import find_spec
+
+from deployment_paths import backend_path
 
 
 class InferenceUnavailableError(FileNotFoundError):
@@ -25,6 +28,18 @@ def load_yolo_model(path: Path | str) -> Any:
             "保留指定文件名且子目录留空；也可安装 02-data 数据包或设置 UAV_DATA_DIR。"
             "页面浏览和文件上传不受影响。"
         )
+    # ultralytics 首次 import 时会往用户 AppData 建配置目录
+    # （C:\Users\<用户>\AppData\Roaming\Ultralytics）。受限权限或漫游目录只读时抛
+    # PermissionError: [WinError 5] 拒绝访问，而这个异常会被下面的 except 吞成
+    # 「AI 推理依赖未安装」——依赖明明装好了却报缺依赖（2026-11-15 实机踩到）。
+    # 改指向数据目录（本来就可写）；用 setdefault 语义，用户显式设了就尊重。
+    if not os.environ.get("YOLO_CONFIG_DIR"):
+        _cfg = backend_path("plateapp", "yolo-config")
+        try:
+            _cfg.mkdir(parents=True, exist_ok=True)
+            os.environ["YOLO_CONFIG_DIR"] = str(_cfg)
+        except OSError:
+            pass          # 数据目录也不可写时放手，让下面照常报错
     try:
         from ultralytics import YOLO
     except Exception as exc:
