@@ -21,7 +21,7 @@
 | 后端 | `app/uav-inspection-backend/plateapp/detector.py` | YOLO 检测车牌，兼容普通检测框与 OBB 旋转框；按类别名映射蓝/绿/黄/白/黑牌 |
 | 后端 | `app/uav-inspection-backend/plateapp/recognizer.py` | 可插拔的第二级字符识别（ONNX 或 TorchScript），权重缺失时自动降级为「只检测不识别」 |
 | 后端 | `app/uav-inspection-backend/plateapp/api/detect.py` | 健康检查 / 配置 / 单帧检测 / 视频抽帧检测 / 离线结果回放 |
-| 后端 | `app/uav-inspection-backend/plateapp/data/` | 内置一次真实验收的回放数据与 7 张识别结果卡（约 1 MB） |
+| 后端 | `<数据根>/uav-inspection-backend/platedata/` | 验收回放 / 过程回放 / 覆盖质量三份 JSON、7 张结果卡、回放视频（约 77 MB；2026-11-16 从包目录迁出，随数据包走，不进仓库与镜像） |
 | 前端 | `app/uav-inspection-ui/src/views/PlateInspectionView.vue` | 双页签页面：实时检测 + 巡检结果 |
 | 前端 | `app/uav-inspection-ui/src/api1/plate.ts` | 接口客户端与类型定义 |
 
@@ -180,7 +180,7 @@ npm run dev
 
 接权重时踩到的三个坑已经写进 `plateapp/recognizer.py` 的文件头注释：
 通道顺序（BGR/RGB）、四点定角、输入尺寸与归一化。字符表模板见
-`plateapp/data/charset_ccpd.txt`。
+`<数据根>/uav-inspection-backend/plateapp/recognizer/charset_ccpd.txt`。
 
 ---
 
@@ -234,5 +234,5 @@ uav-plate-demo/
 **验证口径**（换一台机器复现时应看到同样的结果）：解压到任意目录，用
 `app/.venv-deploy` 里的 Python 起 `uvicorn heatmapapp.main:app --port 8002`，
 `/plate` 返回 200；只装基础依赖时 `/api/v1/plate/detect/upload` 返回 503 并提示缺推理依赖；
-装完 `--inference` 后同一接口对 `plateapp/data/cards/car_6.jpg` 返回
+装完 `--inference` 后同一接口对 `<数据根>/uav-inspection-backend/platedata/cards/car_6.jpg` 返回
 `皖ACS122`（绿）与 `皖5021`（蓝，背景车，部分遮挡）。

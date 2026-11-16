@@ -1,12 +1,13 @@
 # 车牌回放页的数据从哪来
 
-> 面向维护者。回答一个问题：`plateapp/data/` 里那些文件，换一批跑批数据要怎么办。
+> 面向维护者。回答一个问题：`platedata/`（`<数据根>/uav-inspection-backend/platedata`，
+> 开发机上是 `02-data/uav-inspection-backend/platedata`）里那些文件，换一批跑批数据要怎么办。
 
 ## 一、页面用哪些文件
 
 | 文件 | 谁在用 | 作用 |
 |---|---|---|
-| `timeline.json` | `plateapp/api/detect.py` → `/api/v1/plate/timeline`；前端 `PlateInspectionView.vue` 的「过程回放」tab | 视频 + 阶段条 + 事件流 + KPI |
+| `timeline.json` | `plateapp/api/detect.py` → `/api/v1/plate/replay`；前端 `PlateInspectionView.vue` 的「过程回放」tab | 视频 + 阶段条 + 事件流 + KPI |
 | `coverage.json` | 同上 → `/api/v1/plate/coverage`；「覆盖质量」tab | 建图覆盖率、三排分项、15 个车位的观测数；末尾的 `rviz` 段指向全流程录屏 |
 | `acceptance.json` | `/api/v1/plate/acceptance`；「巡检结果」tab | 逐车结果、违停、补拍轮次 |
 | `cards/car_N.jpg` | 逐车卡片缩略图 | 静态素材 |
@@ -21,8 +22,8 @@
 python scripts/build_replay.py timeline \
     --record-log ~/runs/<run_name>/record.log \
     --fsm-json  ~/runs/<mission_id>/fsm.json \
-    --out app/uav-inspection-backend/plateapp/data/timeline.json \
-    --diff app/uav-inspection-backend/plateapp/data/timeline.json   # 先比再覆盖
+    --out 02-data/uav-inspection-backend/platedata/timeline.json \
+    --diff 02-data/uav-inspection-backend/platedata/timeline.json   # 先比再覆盖
 ```
 
 **验证记录**：用 `~/runs/p9_v2_final_20261114/record.log` +
@@ -156,7 +157,7 @@ ffmpeg -y -i rviz_process.mp4 -vf "fps=12,scale=1920:1080" \
 三个 JSON 是分批塞进来的，彼此没有约束。跑一次自检把「能不能演示」变成可执行判定：
 
 ```bash
-python scripts/check_replay_data.py            # 默认查 plateapp/data
+python scripts/check_replay_data.py            # 默认查 02-data/uav-inspection-backend/platedata
 python scripts/check_replay_data.py --strict-batch   # 两处批次不同即 FAIL
 ```
 
@@ -227,6 +228,30 @@ python scripts/check_replay_data.py --strict-batch   # 两处批次不同即 FAI
 
 那个目录是**另一个东西**：v2.0 验收汇报页，零依赖 `http.server`，读的是
 `p7_v2_accept_20261113`（11-13 那轮）。本仓库三份数据现在统一读
-`p10_v2_final2_20261114`（11-14 19:39 那轮）。两者**数据批次不同、用途不同、技术栈不同**，
+`p12_accept_20261116_120345`（11-16 12:03 那轮）。两者**数据批次不同、用途不同、技术栈不同**，
 不是重复工作；重叠的只是「把一次跑批展示成回放」这个能力。
 见 `Doudou/00_导航/项目_车牌巡检平台.md` §七-5。
+
+---
+
+## 七、数据放哪、脚本随不随镜像
+
+**数据位置**：2026-11-16 起，三份 JSON、结果卡与回放视频统一放在
+`<数据根>/uav-inspection-backend/platedata/`（开发机 `02-data/...`，容器内 `/data/...`）。
+早先放在 `app/uav-inspection-backend/plateapp/data/`，那是包目录——会跟着源码打进镜像层，
+`docker compose up -d --force-recreate` 后运行期新写的 timeline/coverage 全部丢失。
+
+放到 `<数据根>` 之后，仓库里不再跟踪任何车牌回放素材（原来的 20 个文件、77 MB 已出仓）。
+**新环境要看回放，必须先把数据放进数据根**：
+
+```bash
+# 本地开发：02-data 已就位，无需操作
+# 容器部署：把数据灌进命名卷
+docker cp 02-data/uav-inspection-backend/platedata uav-uav-1:/data/uav-inspection-backend/
+```
+
+数据仍在 git 历史里（迁出前最后一个提交），需要时按提交号取回：
+`git show <commit>:app/uav-inspection-backend/plateapp/data/timeline.json > 02-data/uav-inspection-backend/platedata/timeline.json`。
+
+**本节所有脚本都不随镜像分发**：Dockerfile 只 `COPY app/`，根 `scripts/` 与
+`scripts/onsite/` 不进镜像。数据必须在出镜像**之前**生成好，容器里没有生产这些数据的能力。

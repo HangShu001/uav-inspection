@@ -3,7 +3,7 @@
 
 ## 为什么需要它
 
-`plateapp/data/` 里那几份 JSON 是**人工/离线脚本**分批塞进来的，彼此没有约束。
+`platedata/`（`<数据根>/uav-inspection-backend/platedata`）里那几份 JSON 是**人工/离线脚本**分批塞进来的，彼此没有约束。
 2026-11-16 实测就发现一处：`acceptance.json` 的批次是 `p10_v2_final2_20261114`（19:39 起），
 而 `timeline.json` 的 `mission.run` 是 `p9_v2_final_20261114`（19:09 起）——
 「巡检结果」和「过程回放」两个 tab **展示的不是同一跑次**，页面上却不提示。
@@ -31,7 +31,7 @@
 ## 用法
 
     python scripts/check_replay_data.py
-    python scripts/check_replay_data.py --data app/uav-inspection-backend/plateapp/data
+    python scripts/check_replay_data.py --data 02-data/uav-inspection-backend/platedata
     python scripts/check_replay_data.py --strict-batch      # 批次不同即 FAIL（默认只 WARN）
 """
 from __future__ import annotations
@@ -311,7 +311,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="车牌回放数据自检")
     ap.add_argument("--data", default=os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "app", "uav-inspection-backend", "plateapp", "data"))
+        "02-data", "uav-inspection-backend", "platedata"))
     ap.add_argument("--slots", type=int, default=15, help="期望的车位数，0 表示不查")
     ap.add_argument("--strict-batch", action="store_true",
                     help="两处批次不同即 FAIL（默认只 WARN）")

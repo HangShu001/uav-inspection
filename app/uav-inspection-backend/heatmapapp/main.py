@@ -45,10 +45,12 @@ ROOF_REPORTS_PATH = backend_path('roofdata', 'reports')
 POWER_MEDIA_PATH = backend_path('powerdata', 'media')
 WALL_MEDIA_PATH = backend_path('walldata', 'media')
 PRUNING_MEDIA_PATH = backend_path('treedata', 'media')
+PLATE_MEDIA_PATH = backend_path('platedata', 'media')
+PLATE_CARDS_PATH = backend_path('platedata', 'cards')
 ROSE_PICTURES_PATH = project_path('uav-inspection-ui', 'public', 'rose-pictures')
 FRONTEND_DIST = Path(os.getenv('UAV_FRONTEND_DIST', str(PROJECT_ROOT / 'uav-inspection-ui' / 'dist'))).resolve()
 
-for path in [VIDEO_PATH, SNAPSHOT_PATH, PEST_MEDIA_PATH, ROSE_TASKS_PATH, TELECOM_MEDIA_PATH, TELECOM_TASKS_PATH, ROOF_MEDIA_PATH, ROOF_REPORTS_PATH, POWER_MEDIA_PATH, WALL_MEDIA_PATH, PRUNING_MEDIA_PATH, ROSE_PICTURES_PATH]:
+for path in [VIDEO_PATH, SNAPSHOT_PATH, PEST_MEDIA_PATH, ROSE_TASKS_PATH, TELECOM_MEDIA_PATH, TELECOM_TASKS_PATH, ROOF_MEDIA_PATH, ROOF_REPORTS_PATH, POWER_MEDIA_PATH, WALL_MEDIA_PATH, PRUNING_MEDIA_PATH, PLATE_MEDIA_PATH, PLATE_CARDS_PATH, ROSE_PICTURES_PATH]:
     os.makedirs(path, exist_ok=True)
 
 app.include_router(auth_api.router, prefix='/api/v1/auth', tags=['账号'])
@@ -78,12 +80,10 @@ app.mount('/api/v1/roof/reports', StaticFiles(directory=ROOF_REPORTS_PATH), name
 app.mount('/api/v1/power/media', StaticFiles(directory=POWER_MEDIA_PATH), name='power_media')
 app.mount('/api/v1/wall/media', StaticFiles(directory=WALL_MEDIA_PATH), name='wall_media')
 app.mount('/api/v1/pruning/media', StaticFiles(directory=PRUNING_MEDIA_PATH), name='pruning_media')
-plate_detect.CARDS_DIR.mkdir(parents=True, exist_ok=True)
-app.mount('/api/v1/plate/cards', StaticFiles(directory=plate_detect.CARDS_DIR), name='plate_cards')
+app.mount('/api/v1/plate/cards', StaticFiles(directory=PLATE_CARDS_PATH), name='plate_cards')
 # 过程回放素材（replay.mp4 / 阶段封面 / 覆盖热力图）。StaticFiles 自带 Range 支持，
 # 视频拖进度条要靠它；用 FileResponse 手写端点反而不稳。
-plate_detect.MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-app.mount('/api/v1/plate/media', StaticFiles(directory=plate_detect.MEDIA_DIR), name='plate_media')
+app.mount('/api/v1/plate/media', StaticFiles(directory=PLATE_MEDIA_PATH), name='plate_media')
 app.mount('/rose-pictures', StaticFiles(directory=ROSE_PICTURES_PATH), name='rose_pictures')
 
 app.include_router(ws_agent.router, prefix='/ws/v1', tags=['Agent对话'])
@@ -109,7 +109,8 @@ async def deployment_status():
     models = {name: path.is_file() for name, path in weight_files.items()}
     dependencies = inference_dependencies_available()
     media_roots = [VIDEO_PATH, PEST_MEDIA_PATH, ROSE_TASKS_PATH, TELECOM_MEDIA_PATH,
-                   TELECOM_TASKS_PATH, ROOF_MEDIA_PATH, POWER_MEDIA_PATH, WALL_MEDIA_PATH, PRUNING_MEDIA_PATH]
+                   TELECOM_TASKS_PATH, ROOF_MEDIA_PATH, POWER_MEDIA_PATH, WALL_MEDIA_PATH,
+                   PRUNING_MEDIA_PATH, PLATE_MEDIA_PATH]
     media_suffixes = {'.mp4', '.avi', '.mov', '.mkv', '.webm'}
     has_video = any(p.suffix.lower() in media_suffixes for folder in media_roots for p in folder.rglob('*') if p.is_file())
     has_measurements = any(project_path('measurement_data').glob('*/green_area_summary.json'))

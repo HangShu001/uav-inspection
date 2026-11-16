@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""把一轮实机验收跑次，生成 `plateapp/data/acceptance.json`（「巡检结果」tab 的数据源）。
+"""把一轮实机验收跑次，生成 `platedata/acceptance.json`（「巡检结果」tab 的数据源）。
 
 ## 为什么要它
 
@@ -37,10 +37,10 @@ p12 两腿识别也都是 `皖BXH618`（conf 0.998 / 0.987）。以 spawn 表为
     python scripts/gen_acceptance.py \\
         --fsm   ~/runs/mission_20261116_120348/fsm.json \\
         --cars-yaml ~/uav_plate/code/v2/ws/src/uav_viewpoint/config/parking_cars_v2.yaml \\
-        --timeline  app/uav-inspection-backend/plateapp/data/timeline.json \\
-        --geometry  app/uav-inspection-backend/plateapp/data/acceptance.json \\
-        --cards-out app/uav-inspection-backend/plateapp/data/cards \\
-        --out       app/uav-inspection-backend/plateapp/data/acceptance.json
+        --timeline  02-data/uav-inspection-backend/platedata/timeline.json \\
+        --geometry  02-data/uav-inspection-backend/platedata/acceptance.json \\
+        --cards-out 02-data/uav-inspection-backend/platedata/cards \\
+        --out       02-data/uav-inspection-backend/platedata/acceptance.json
 
 退出码：0 正常；2 输入不全/解析失败；3 有车读不出车牌（仍会写文件，供人工核对）。
 """

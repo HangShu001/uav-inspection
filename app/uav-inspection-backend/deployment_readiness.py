@@ -5,8 +5,6 @@ and detection endpoints remain the authority for actual inference readiness.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 from deployment_paths import backend_path
 from optional_inference import inference_dependencies_available
 from roseapp.detector import _resolve_model_path
@@ -128,7 +126,7 @@ def module_status() -> dict[str, dict]:
         plate_missing.append(requirement(f'检测模型 {MODEL_PATHS["plate"]().name}', 'plate-model'))
     if not dependencies:
         plate_missing.append(requirement('服务器 AI 推理依赖（构建时启用 UAV_INSTALL_INFERENCE=1）'))
-    acceptance_ready = (Path(__file__).resolve().parent / 'plateapp' / 'data' / 'acceptance.json').is_file()
+    acceptance_ready = backend_path('platedata', 'acceptance.json').is_file()
     plate_note = '缺少检测权重时，页面仍可查看最近一次验收结果回放；实时检测与车牌号识别需要对应权重。'
     if acceptance_ready:
         plate_note = '已内置一次验收结果回放，可直接查看；' + plate_note

@@ -45,11 +45,11 @@
     python scripts/build_replay.py timeline \
         --record-log ~/runs/p9_v2_final_20261114/record.log \
         --fsm-json  ~/runs/mission_20261114_190947/fsm.json \
-        --out /tmp/timeline.json --diff app/uav-inspection-backend/plateapp/data/timeline.json
+        --out /tmp/timeline.json --diff 02-data/uav-inspection-backend/platedata/timeline.json
 
     # 2) 确认无误再覆盖
     python scripts/build_replay.py timeline --record-log ... --fsm-json ... \
-        --out app/uav-inspection-backend/plateapp/data/timeline.json
+        --out 02-data/uav-inspection-backend/platedata/timeline.json
 
 退出码：0 = 写出成功（带 --diff 时还要求无差异）；1 = 解析失败或有差异；2 = 输入缺失。
 """

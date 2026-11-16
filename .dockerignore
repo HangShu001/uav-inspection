@@ -7,5 +7,17 @@ app/02-data
 app/delivery
 app/uav-inspection-backend/fendaidata
 
+# 运行期数据一律走 UAV_DATA_DIR（容器内 /data）命名卷，不进镜像层；
+# 打在镜像里的数据在 --force-recreate 后会丢，且每次构建都要重新 COPY 一遍。
+app/uav-inspection-backend/plateapp/data/
+
+# pip 在部分 Windows 环境把解包临时目录建在项目里而不是系统临时目录
+app/uav-inspection-backend/pip-unpack-*/
+app/uav-inspection-backend/pip-metadata-*/
+app/uav-inspection-backend/pip-install-*/
+app/uav-inspection-backend/pip-ephem-wheel-cache-*/
+app/uav-inspection-backend/pip-build-tracker-*/
+app/uav-inspection-backend/torchinductor_hang/
+
 # Local account/session database
 app/uav-inspection-backend/auth/

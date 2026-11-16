@@ -51,12 +51,16 @@ ACTIVE_WEIGHTS = (
     "heatmapweight/renliu.pt", "roseapp/rose-detect-best.pt",
     "telecomapp/station2-best.pt", "powerapp/wire-pole-seg.pt",
     "treeapp/tree-pruning-best.pt", "wallapp/wall-damage-best.pt",
+    "plateapp/plate-det-best.pt",
 )
 RUNTIME_DIRS = (
     "heatmapdata/videos", "heatmapdata/snapshots", "heatmapdata/logs",
     "pestdata", "powerdata", "roofdata", "telecomdata", "treedata",
     "walldata/media", "walldata/logs", "walldata/reports", "rose-tasks",
     "telecom-tasks", "fendaidata/scenes",
+    # 车牌模块的验收回放 / 过程回放 / 覆盖质量：JSON、结果卡、回放视频与封面。
+    # 2026-11-16 从包目录 plateapp/data 迁到这里，随数据包走，不再随源码走。
+    "platedata",
 )
 DATA_ASSET_SUFFIXES = {".csv", ".json", ".png", ".jpg", ".jpeg"}
 DATA_README = """# 可选运行数据包
@@ -210,13 +214,9 @@ def collect_files(root: Path, include_data: bool = True) -> list[Entry]:
                 if path.suffix.lower() in UI_ASSET_SUFFIXES or path.name in {"robots.txt", "manifest.json"}:
                     add(path, "app")
 
-    # 车牌模块内置的一次真实验收回放（acceptance/timeline/coverage JSON、7 张结果卡、
-    # 过程视频与封面）随源码走，不进 02-data——它是功能的一部分，不是可选素材。
-    # 注意 backend 目录的收集只认 *.py，不补这段会整块丢掉。
-    plate_data = backend / "plateapp" / "data"
-    for path in walk_files(plate_data):
-        if path.suffix.lower() in TEXT_SOURCE_SUFFIXES | UI_ASSET_SUFFIXES | {".mp4"}:
-            add(path, "app")
+    # 车牌模块的回放数据已按平台约定迁到 <数据根>/uav-inspection-backend/platedata，
+    # 由上面的 RUNTIME_DIRS 统一收（include_data 时进数据包）。此处不再单独转抄：
+    # 早先那段写的是 backend/"plateapp"/"data"，而该目录从来不存在（空转）。
 
     if include_data:
         for folder in RUNTIME_DIRS:

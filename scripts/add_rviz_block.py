@@ -7,9 +7,9 @@ box 偏移上猜）。
 
 用法：
     python scripts/add_rviz_block.py \
-        --coverage app/uav-inspection-backend/plateapp/data/coverage.json \
-        --video    app/uav-inspection-backend/plateapp/data/media/rviz_process.mp4 \
-        --poster   app/uav-inspection-backend/plateapp/data/media/rviz_process_poster.jpg \
+        --coverage 02-data/uav-inspection-backend/platedata/coverage.json \
+        --video    02-data/uav-inspection-backend/platedata/media/rviz_process.mp4 \
+        --poster   02-data/uav-inspection-backend/platedata/media/rviz_process_poster.jpg \
         --width 1920 --height 1080 --run p11_accept_20261116_113536 --same-batch
 """
 import argparse

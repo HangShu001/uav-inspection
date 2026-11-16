@@ -13,11 +13,15 @@ from pydantic import BaseModel
 
 from plateapp.detector import plate_detector
 from plateapp.recognizer import plate_recognizer
+from deployment_paths import backend_path
 from uav_url_prefix import prefixed
 
 router = APIRouter()
 
-DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+# 数据落点遵循平台约定：<数据根>/uav-inspection-backend/<domain>data/。
+# 早期版本把 data 放在包目录里，会跟着 source 一起打进镜像层，容器重建（--force-recreate）
+# 后运行期写入的 timeline/coverage 全丢，且与 deployment_readiness 的判定口径打架。
+DATA_DIR = backend_path('platedata')
 ACCEPTANCE_PATH = DATA_DIR / 'acceptance.json'
 CARDS_DIR = DATA_DIR / 'cards'
 
@@ -259,20 +263,24 @@ async def plate_detect_video(
         temp_path.unlink(missing_ok=True)
 
 
-@router.get('/acceptance')
-async def plate_acceptance() -> dict[str, object]:
+# response_model=None：返回值可能是 dict 也可能是 JSONResponse（缺数据显示 404），
+# 不关掉自动响应模型的话 FastAPI 会在导入期就报「Invalid args for response field」。
+@router.get('/acceptance', response_model=None)
+async def plate_acceptance() -> dict[str, object] | JSONResponse:
     """离线验收结果回放：没有模型权重时，页面仍有可展示的真实数据。"""
     payload = _load_acceptance()
     if payload is None:
-        return {'code': 404, 'message': '未找到验收回放数据', 'data': {'available': False}}
+        # 缺数据既要让页面看得懂（体内 code），也要让网关/监控判得对（HTTP 404）。
+        return JSONResponse(status_code=404, content={
+            'code': 404, 'message': '未找到验收回放数据', 'data': {'available': False}})
     for vehicle in payload.get('vehicles', []):
         card = vehicle.get('card')
         vehicle['card_url'] = prefixed(f'/api/v1/plate/cards/{card}') if card else None
     return {'code': 200, 'message': 'success', 'data': payload}
 
 
-@router.get('/replay')
-async def plate_replay() -> dict[str, object]:
+@router.get('/replay', response_model=None)
+async def plate_replay() -> dict[str, object] | JSONResponse:
     """任务过程回放：阶段时间轴 + 回放视频地址 + 关键事件。
 
     数据由 ai/analysis/v4e_timeline_20261115.py 从 driver.log 与 fsm.json 解析，
@@ -280,8 +288,8 @@ async def plate_replay() -> dict[str, object]:
     """
     payload = _load_json_file(TIMELINE_PATH)
     if payload is None:
-        return {'code': 404, 'message': '未找到回放数据',
-                'data': {'available': False}}
+        return JSONResponse(status_code=404, content={
+            'code': 404, 'message': '未找到回放数据', 'data': {'available': False}})
 
     video = payload.get('video') or {}
     for key in ('src', 'poster'):
@@ -296,8 +304,8 @@ async def plate_replay() -> dict[str, object]:
     return {'code': 200, 'message': 'success', 'data': payload}
 
 
-@router.get('/coverage')
-async def plate_coverage() -> dict[str, object]:
+@router.get('/coverage', response_model=None)
+async def plate_coverage() -> dict[str, object] | JSONResponse:
     """L4 覆盖质量：可观测区格数、各帧数门限占比、分排统计、15 车位质量。
 
     分母口径：贴墙矩形（x±13.7 / y±9.2）再扣掉 7 辆车体遮挡区。
@@ -305,8 +313,8 @@ async def plate_coverage() -> dict[str, object]:
     """
     payload = _load_json_file(COVERAGE_PATH)
     if payload is None:
-        return {'code': 404, 'message': '未找到覆盖质量数据',
-                'data': {'available': False}}
+        return JSONResponse(status_code=404, content={
+            'code': 404, 'message': '未找到覆盖质量数据', 'data': {'available': False}})
 
     if payload.get('image'):
         payload['image'] = _media_versioned(prefixed(str(payload['image'])))
