@@ -231,13 +231,34 @@ def build(cfg):
     frames = cfg.frames or hd.get("总帧数")
     seconds = round(frames / fps, 1) if (frames and fps) else None
     offset = cfg.offset_s
+    offset_src = "参数指定" if offset is not None else None
+    if offset is None and started:
+        # 优先：record.log 的「[INFO] [<unix>]: 录制开始」——这是录屏真正的起点。
+        # 不能用「脚本结束时刻 − 视频秒数」：脚本收尾（停 stage1、建车位图、
+        # 写 DONE.rc）比录屏结束晚约 24 s，会把 offset 系统性多算 24 s。
+        # 实测代价：p9 算成 29.5（真实 6.0）、p10 算成 33.0（真实 8.7），
+        # 后果是所有「跳段首」整体晚 24 s，1 秒长的 wrap 段直接跳到别的段里。
+        try:
+            from datetime import datetime
+            mrec = re.search(r"\[INFO\] \[(\d+\.\d+)\]: 录制开始",
+                             "\n".join(rec["raw"]))
+            if mrec:
+                d0 = datetime.strptime(started_at, "%Y-%m-%d %H:%M:%S")
+                d_rec = datetime.fromtimestamp(float(mrec.group(1)))
+                offset = round((d_rec - d0).total_seconds(), 1)
+                offset_src = "录制开始时间戳"
+        except Exception:                                     # noqa: BLE001
+            offset = None
+
     if offset is None and seconds and hd.get("结束") and started:
+        # 兜底：拿不到时间戳时才用脚本结束时刻，已知偏大约 24 s，note 会标出来
         try:
             from datetime import datetime
             fmt = "%Y-%m-%d %H:%M:%S"
             d0 = datetime.strptime(started_at, fmt)
             d1 = datetime.strptime(hd["结束"], fmt)
             offset = round((d1 - d0).total_seconds() - seconds, 1)
+            offset_src = "脚本结束时刻（偏大，不可靠）"
         except Exception:                                     # noqa: BLE001
             offset = None
 
@@ -327,8 +348,10 @@ def build(cfg):
             "fps": fps,
             "size": size,
             "offset_s": offset,
-            "note": ("录屏晚于任务启动 %s s，视频时间 = 墙钟 − %s" % (offset, offset)
-                     if offset is not None else "offset 未能推算：缺「结束」时刻或帧率"),
+            "note": ("录屏晚于任务启动 %s s（来源：%s），视频时间 = 墙钟 − %s"
+                     % (offset, offset_src, offset)
+                     if offset is not None
+                     else "offset 未能推算：缺「录制开始」时间戳与结束时刻"),
         },
         "phases": phases,
         "events": ev,

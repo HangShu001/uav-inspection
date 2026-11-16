@@ -27,6 +27,20 @@ TIMELINE_PATH = DATA_DIR / 'timeline.json'
 COVERAGE_PATH = DATA_DIR / 'coverage.json'
 MEDIA_DIR = DATA_DIR / 'media'
 
+
+def _media_versioned(url: str) -> str:
+    """给媒体 URL 追加内容戳，防止换批次后客户端继续播旧文件。
+
+    静态挂载不带 Cache-Control，浏览器对同 URL 的 mp4 会强缓存。实测把 p9 的回放
+    换成 p10 后，页面仍显示旧的 21:44（1304 s）而不是新的 20:12（1212 s），
+    普通刷新和 F5 都无效，必须硬清缓存。加上 ?v=<mtime> 后 URL 变了，自然重新拉取。
+    """
+    name = url.rsplit('/', 1)[-1].split('?', 1)[0]
+    try:
+        return '%s?v=%d' % (url, int((MEDIA_DIR / name).stat().st_mtime))
+    except OSError:
+        return url
+
 # 视频检测是同步执行的，必须有明确上限，否则一个大文件就能把工作进程占满。
 MAX_VIDEO_FRAMES = 40
 MAX_VIDEO_SECONDS = 60.0
@@ -272,12 +286,12 @@ async def plate_replay() -> dict[str, object]:
     video = payload.get('video') or {}
     for key in ('src', 'poster'):
         if video.get(key):
-            video[key] = prefixed(str(video[key]))
+            video[key] = _media_versioned(prefixed(str(video[key])))
     payload['video'] = video
 
     for phase in payload.get('phases') or []:
         if phase.get('cover'):
-            phase['cover'] = prefixed(str(phase['cover']))
+            phase['cover'] = _media_versioned(prefixed(str(phase['cover'])))
 
     return {'code': 200, 'message': 'success', 'data': payload}
 
@@ -295,5 +309,5 @@ async def plate_coverage() -> dict[str, object]:
                 'data': {'available': False}}
 
     if payload.get('image'):
-        payload['image'] = prefixed(str(payload['image']))
+        payload['image'] = _media_versioned(prefixed(str(payload['image'])))
     return {'code': 200, 'message': 'success', 'data': payload}

@@ -16,7 +16,7 @@
 2. JSON 里引用的素材（`/api/v1/plate/media/x` → `data/media/x`）文件都在、且非空；
 3. **`replay.mp4` 的真实时长**（直接从 MP4 的 `mvhd` box 解，不需要 ffmpeg）
    与 `timeline.video.seconds` 是否一致——差了就等于阶段条会 seek 到视频外；
-4. `phases` 自洽：`t0 < t1`、区间不重叠、末段不越过 `video.seconds`；
+4. `phases` 自洽：`t0 < t1`、区间不重叠、末段不越过录屏末尾（超 60 s 算错）；
 5. `kpi.rounds` 与 `kpi` 汇总数一致（captured 之和、inspect_round 与 rounds 条数）；
 6. `coverage` 三个阈值的 `cells / observable_cells` 与 `ratio` 自洽、`slots` 条数与车位表一致；
 7. `acceptance` 的车辆数、`cards/car_N.jpg` 是否齐全，以及**批次一致性**
@@ -174,8 +174,17 @@ def check_phases(tl):
     total = (tl.get("video") or {}).get("seconds") or 0
     if phases and total:
         last = phases[-1].get("t1") or 0
-        if last > total + off + 2:
-            add(FAIL, "阶段", "末段 t1=%s 超出 视频时长+偏移=%s" % (last, total + off))
+        # 收尾段末尾允许略超录屏末尾：录屏在脚本收尾（停 stage1、建车位图）之前就停了，
+        # p10 实测差 9.3 s。超出本身不是错误，超出过多才是数据错（比如 offset 算反了）。
+        over = last - (total + off)
+        if over > 60:
+            add(FAIL, "阶段",
+                "末段 t1=%s 比录屏末尾 %.1f 晚 %.0f s，远超收尾容差（查 offset 是否算错）"
+                % (last, total + off, over))
+        elif over > 2:
+            add(WARN, "阶段",
+                "末段 t1=%s 比录屏末尾 %.1f 晚 %.0f s（收尾段未被录屏覆盖，属正常）"
+                % (last, total + off, over))
         else:
             add(OK, "阶段", "%d 段，末段 t1=%s ≤ %.1f" % (len(phases), last, total + off))
 

@@ -230,7 +230,11 @@ function onVideoTime(e: Event) {
   videoTime.value = (e.target as HTMLVideoElement).currentTime
 }
 
-/** 墙钟秒 → 视频秒要减去录屏起始偏移，否则整条时间轴会早 30 秒 */
+/**
+ * 墙钟秒 → 视频秒要减去录屏起始偏移（offset_s 因批次而异，p9 是 6.4、p10 是 8.7）。
+ * 不减会让点「段首」跳到的位置比实际早 offset 秒；早先这里写死过 29.5，
+ * 是把脚本收尾时刻当成录屏结束时刻造成的，整条时间轴偏了约 24 秒。
+ */
 function seekToPhase(ph: ReplayPhase) {
   const el = videoEl.value
   if (!el) return
