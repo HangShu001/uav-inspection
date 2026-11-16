@@ -625,6 +625,13 @@ onUnmounted(() => {
           <p class="mt-3 text-xs leading-relaxed text-slate-500">
             最小余量 = 标准半尺寸 −（车心偏移 + 车体投影半尺寸），负值即越界。形状误差是车牌四点反算的车体四角与真实四角之差。
           </p>
+          <p
+            v-if="acceptance.geometry"
+            class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-700"
+          >
+            本表几何量来自 {{ acceptance.geometry.batch }}（{{ acceptance.geometry.start }}）那一轮的复算，
+            按车体标注（real_car）重挂到本次车号；本次跑次只做检测/识别/覆盖，未重算车位与余量。
+          </p>
         </section>
 
         <section class="rounded-[24px] border border-indigo-100 bg-indigo-50/60 p-4">
@@ -634,7 +641,7 @@ onUnmounted(() => {
               <p class="font-semibold">这批结果怎么来的</p>
               <p class="mt-1">
                 {{ acceptance.retry.触发 }}，系统按轮次补拍 {{ acceptance.retry.补拍 }}，结果 {{ acceptance.retry.结果 }}。
-                同一套流程另有 {{ acceptance.reruns.length }} 轮连续通过，判定口径一致。
+                本批共 {{ acceptance.retry.轮次 }} 轮 INSPECT，车号与真值按起降点坐标映射后逐字比对。
               </p>
             </div>
           </div>
@@ -807,6 +814,9 @@ onUnmounted(() => {
           </div>
           <p class="text-xs text-slate-500">
             {{ coverageRviz.width }}×{{ coverageRviz.height }} · {{ coverageRviz.fps }} fps · {{ fmtTime(coverageRviz.seconds) }}
+            <span v-if="coverageRviz.offset_s" class="text-amber-600">
+              · 自任务第 {{ Math.round(coverageRviz.offset_s) }} s 起录
+            </span>
           </p>
         </div>
         <video

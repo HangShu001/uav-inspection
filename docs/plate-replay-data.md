@@ -172,29 +172,36 @@ python scripts/check_replay_data.py --strict-batch   # 两处批次不同即 FAI
 - 唯一 WARN 是「末段 t1=1230 比录屏末尾 1220.7 晚 9 s」——脚本收尾比录屏停得晚，
   属正常，判据见 §四末段那条。
 
-### 批次现状：回放/覆盖/RViz 录屏三份同批，`acceptance.json` 仍是旧批
+### 批次现状：四份同批（`p12_accept_20261116_120345`）
 
-2026-11-16 重新跑了一整轮并整批换掉：
+| 文件 | 批次 | 起始 | 生成方式 |
+|---|---|---|---|
+| `timeline.json`（过程回放） | `p12_accept_20261116_120345` | 12:03:48 | `scripts/build_replay.py timeline` |
+| `coverage.json`（覆盖质量） | 同上（采集 `map_20261116_120345`，267 帧） | — | `scripts/onsite/v4e_coverage_report.py` |
+| `coverage.rviz`（RViz 录屏） | 同上 | 12:07:16 起录 | `scripts/add_rviz_block.py` |
+| `acceptance.json`（巡检结果） | 同上 | 12:03:48 — 12:24:04 | `scripts/gen_acceptance.py` |
 
-| 文件 | 批次 | 起始 |
-|---|---|---|
-| `timeline.json`（过程回放） | `p12_accept_20261116_120345` | 12:03:48 |
-| `coverage.json`（覆盖质量） | 同上（采集 `map_20261116_120345`，267 帧） | — |
-| `coverage.rviz`（RViz 录屏） | 同上 | 12:07:16 起录 |
-| `acceptance.json`（巡检结果） | **`p10_v2_final2_20261114`（旧）** | 11-14 19:39:07 |
+2026-11-16 补上 `acceptance.json` 的生产脚本后，自检从「12 通过 / 1 WARN」变成
+**13 通过 / 0 WARN / 0 FAIL**，页面上那枚琥珀色「回放批次 ≠ 巡检结果批次」提示随之消失。
 
-前三份是一件事，`acceptance.json` 还停在 11-14 那轮——**它没有生成脚本**
-（全仓只有读方 `plateapp/api/detect.py`），所以没法跟着换。自检因此长期留 1 个 WARN，
-页面上那枚琥珀色「回放批次 ≠ 巡检结果批次」提示就是它。
+`gen_acceptance.py` 的输入与口径（详见脚本头注释）：
 
-要消掉这个 WARN，得先补 `acceptance.json` 的生产脚本（输入应是该轮的
-`report.json` / 逐车结果），那是另一件事。
+- 起跑时刻取 `timeline.mission.started_at`，收尾取 `fsm.json` 的 mtime，墙钟 **1216 s**；
+  （此前口头的 1235 s 是 `timeline` 末段阶段标记，两者差 19 s，口径不同不算矛盾）
+- 逐车结果取 `fsm.rounds[].run_dir` 下每腿的 `*_plate.json`，按「真值命中 > 轮次靠后 > 置信度高」选一条；
+- **真值取 spawn 表 `parking_cars_v2.yaml`，不取 `inspect_r*.yaml`**：后者来自
+  `cruise_discovered.yaml`，把 `car_0` 写成 `皖A17618`，而 spawn 表里那辆车（`car_park_02`）
+  是 `皖BXH618`，p12 两腿识别也都是 `皖BXH618`（0.998 / 0.987）。这条差异已登记为
+  **真值表待订正**（`cruise_discovered.yaml` 该字段），不影响本次认定 7/7。
+- **违停余量按 `real_car` 重挂**：`car_N` 的编号每轮不同（p10 的 `car_4` 是 `car_park_04`，
+  p12 的 `car_4` 是 `car_park_06`），按序号搬运会把余量算到别的车上。p12 未做车位重建，
+  该表沿用 p10 几何复算结果，页面在表下方标注来源批次（`acceptance.geometry`）。
 
 ### 本轮（p12）的关键读数
 
 | 项 | 值 |
 |---|---|
-| 结果 | `DONE`，`C_cap=1.000`（7/7），2 轮 INSPECT，墙钟 1235 s |
+| 结果 | `DONE`，`C_cap=1.000`（7/7），2 轮 INSPECT，墙钟 1216 s（timeline 末段 1235 s） |
 | SURVEY | 400 s 发现 7 条 |
 | 过程回放视频 | 1147.9 s / 1280×720 / 17218 帧 |
 | RViz 录屏 | 1164.5 s / 1920×1080 / 12 fps / 70 MB |

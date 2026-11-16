@@ -87,6 +87,11 @@ export interface AcceptanceVehicle {
   car: string
   real_car: string
   plate: string
+  /** spawn 真值表里的车牌，与 plate 逐字比对后才算「认定」 */
+  plate_truth?: string
+  match?: boolean
+  /** 真值表里的停放形态：normal / encroach / angled */
+  state?: string
   confidence: number
   distance_m: number
   leg: string
@@ -115,11 +120,15 @@ export interface AcceptanceData {
     fsm: string
     exit_code: number
     batch_dir: string
+    mission_id?: string
+    wall_clock_s?: number | null
   }
   summary: Array<{ label: string; value: string; note: string }>
   vehicles: AcceptanceVehicle[]
   violations: AcceptanceViolation[]
-  reruns: Array<{ 启动: string; 墙钟_s: number; 建图: number }>
+  /** 违停余量来自哪一轮复算（本轮只做检测/识别/覆盖时不重算几何） */
+  geometry?: { batch: string; start: string; note: string }
+  reruns?: Array<{ 启动: string; 墙钟_s: number; 建图: number }>
   retry: { 轮次: number; 触发: string; 补拍: string; 结果: string }
 }
 
@@ -229,6 +238,8 @@ export interface CoverageData {
     fps: number
     run: string
     note: string
+    /** 录屏起点相对任务起跑的秒数；>0 表示前段（通常是 SURVEY）不在画面内 */
+    offset_s?: number
     /** 与覆盖质量同批次时为 true；不同批次前端要显式提示 */
     same_batch: boolean
   }

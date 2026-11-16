@@ -52,6 +52,8 @@ def main():
     ap.add_argument("--height", type=int, required=True)
     ap.add_argument("--fps", type=float, default=15.0)
     ap.add_argument("--same-batch", action="store_true")
+    ap.add_argument("--offset-s", type=float, default=0.0,
+                    help="录屏起点相对任务起跑的秒数（来自 timeline.video.offset_s）；>0 时在 note 里披露未覆盖的前段")
     ap.add_argument("--src-url", default="/api/v1/plate/media/rviz_process.mp4")
     ap.add_argument("--poster-url", default="/api/v1/plate/media/rviz_process_poster.jpg")
     a = ap.parse_args()
@@ -62,6 +64,10 @@ def main():
 
     doc = json.load(open(a.coverage, encoding="utf-8"))
     has_poster = bool(a.poster) and os.path.isfile(a.poster)
+    note = NOTE
+    if a.offset_s and a.offset_s > 0:
+        # 录屏是人在任务起跑后才点开录的，前段天然缺；不写清楚就会被当成「整轮都在里面」
+        note = ("录屏自任务起跑后第 %.0f s 开始（此前 SURVEY 段不在画面内）。" % a.offset_s) + NOTE
     doc["rviz"] = {
         "src": a.src_url,
         "poster": a.poster_url if has_poster else "",
@@ -70,7 +76,8 @@ def main():
         "height": a.height,
         "fps": a.fps,
         "run": a.run,
-        "note": NOTE,
+        "note": note,
+        "offset_s": round(float(a.offset_s or 0.0), 1),
         "same_batch": bool(a.same_batch),
     }
     # newline="\n"：Windows 上默认会写 CRLF，仓库里别的 JSON 都是 LF
