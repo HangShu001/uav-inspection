@@ -32,18 +32,30 @@ COVERAGE_PATH = DATA_DIR / 'coverage.json'
 MEDIA_DIR = DATA_DIR / 'media'
 
 
-def _media_versioned(url: str) -> str:
-    """给媒体 URL 追加内容戳，防止换批次后客户端继续播旧文件。
+def _versioned(url: str, base_dir: Path) -> str:
+    """给静态资源 URL 追加内容戳，防止换批次后客户端继续用旧文件。
 
-    静态挂载不带 Cache-Control，浏览器对同 URL 的 mp4 会强缓存。实测把 p9 的回放
+    静态挂载不带 Cache-Control，浏览器对同 URL 的 mp4/jpg 会强缓存。实测把 p9 的回放
     换成 p10 后，页面仍显示旧的 21:44（1304 s）而不是新的 20:12（1212 s），
     普通刷新和 F5 都无效，必须硬清缓存。加上 ?v=<mtime> 后 URL 变了，自然重新拉取。
+    结果卡（cards/*.jpg）是同一文件名换内容，不吃这套就会一直显示旧卡，故一并走这里。
+    幂等：URL 已带查询串时替换掉，不叠加——`x.mp4?v=1?v=2` 会让服务端把
+    `x.mp4?v=1` 当文件名，直接 404。
     """
-    name = url.rsplit('/', 1)[-1].split('?', 1)[0]
+    base, _sep, _query = url.partition('?')
+    name = base.rsplit('/', 1)[-1]
     try:
-        return '%s?v=%d' % (url, int((MEDIA_DIR / name).stat().st_mtime))
+        return '%s?v=%d' % (base, int((base_dir / name).stat().st_mtime))
     except OSError:
         return url
+
+
+def _media_versioned(url: str) -> str:
+    return _versioned(url, MEDIA_DIR)
+
+
+def _cards_versioned(url: str) -> str:
+    return _versioned(url, CARDS_DIR)
 
 # 视频检测是同步执行的，必须有明确上限，否则一个大文件就能把工作进程占满。
 MAX_VIDEO_FRAMES = 40
@@ -275,7 +287,7 @@ async def plate_acceptance() -> dict[str, object] | JSONResponse:
             'code': 404, 'message': '未找到验收回放数据', 'data': {'available': False}})
     for vehicle in payload.get('vehicles', []):
         card = vehicle.get('card')
-        vehicle['card_url'] = prefixed(f'/api/v1/plate/cards/{card}') if card else None
+        vehicle['card_url'] = _cards_versioned(prefixed(f'/api/v1/plate/cards/{card}')) if card else None
     return {'code': 200, 'message': 'success', 'data': payload}
 
 

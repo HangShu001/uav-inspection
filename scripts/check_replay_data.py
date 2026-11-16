@@ -307,11 +307,22 @@ def check_batch(ac, tl, strict):
                (tl.get("mission") or {}).get("started_at")))
 
 
+def default_data_dir():
+    """数据根优先取 UAV_DATA_DIR（容器里是 /data），否则用仓库内 02-data。
+
+    写死 02-data 在部署机上会指错目录：后端按 UAV_DATA_DIR 读，自检却查另一处，
+    两边结论不一致时无法判断是谁错。
+    """
+    root = os.environ.get("UAV_DATA_DIR")
+    if root:
+        return os.path.join(os.path.expanduser(root), "uav-inspection-backend", "platedata")
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "02-data", "uav-inspection-backend", "platedata")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="车牌回放数据自检")
-    ap.add_argument("--data", default=os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "02-data", "uav-inspection-backend", "platedata"))
+    ap.add_argument("--data", default=default_data_dir())
     ap.add_argument("--slots", type=int, default=15, help="期望的车位数，0 表示不查")
     ap.add_argument("--strict-batch", action="store_true",
                     help="两处批次不同即 FAIL（默认只 WARN）")
