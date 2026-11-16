@@ -255,6 +255,7 @@ const phaseCursor = computed(() => {
   return phases.length ? phases.length - 1 : -1
 })
 
+const coverageRviz = computed(() => coverage.value?.rviz ?? null)
 const coverageRows = computed(() => coverage.value?.rows ?? [])
 const coverageSlots = computed(() => coverage.value?.slots ?? [])
 const budgetUsedPct = computed(() => {
@@ -776,6 +777,7 @@ onUnmounted(() => {
       v-else-if="activeTab === 'coverage'"
       class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px]"
     >
+      <div class="space-y-4">
       <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
         <div v-if="loadingCoverage" class="py-24 text-center text-slate-500">正在载入覆盖质量…</div>
         <div v-else-if="!coverage" class="py-24 text-center text-slate-500">没有可用的覆盖质量数据。</div>
@@ -793,6 +795,34 @@ onUnmounted(() => {
           <p class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ coverage.source.note }}。</p>
         </template>
       </section>
+
+      <section
+        v-if="coverageRviz"
+        class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]"
+      >
+        <div class="flex flex-wrap items-baseline justify-between gap-2 pb-3">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] text-indigo-400">DEPTH FUSION</p>
+            <h2 class="mt-1 text-lg font-semibold text-slate-900">全流程录屏 · 点云与栅格深度融合</h2>
+          </div>
+          <p class="text-xs text-slate-500">
+            {{ coverageRviz.width }}×{{ coverageRviz.height }} · {{ coverageRviz.fps }} fps · {{ fmtTime(coverageRviz.seconds) }}
+          </p>
+        </div>
+        <video
+          :src="coverageRviz.src"
+          :poster="coverageRviz.poster"
+          class="w-full rounded-2xl border border-slate-200 bg-slate-950"
+          controls
+          preload="metadata"
+          playsinline
+        />
+        <p v-if="!coverageRviz.same_batch" class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+          录屏批次 {{ coverageRviz.run }} 与覆盖质量数据不是同一跑次，看数值时以覆盖质量为准。
+        </p>
+        <p class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ coverageRviz.note }}</p>
+      </section>
+      </div>
 
       <aside class="space-y-3">
         <section

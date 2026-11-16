@@ -310,4 +310,10 @@ async def plate_coverage() -> dict[str, object]:
 
     if payload.get('image'):
         payload['image'] = _media_versioned(prefixed(str(payload['image'])))
+    # RViz 全流程录屏（2026-11-16 加）：同样要带内容戳，否则换批后浏览器放旧片
+    rviz = payload.get('rviz')
+    if isinstance(rviz, dict):
+        for key in ('src', 'poster'):
+            if rviz.get(key):
+                rviz[key] = _media_versioned(prefixed(str(rviz[key])))
     return {'code': 200, 'message': 'success', 'data': payload}

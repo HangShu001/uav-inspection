@@ -7,10 +7,11 @@
 | 文件 | 谁在用 | 作用 |
 |---|---|---|
 | `timeline.json` | `plateapp/api/detect.py` → `/api/v1/plate/timeline`；前端 `PlateInspectionView.vue` 的「过程回放」tab | 视频 + 阶段条 + 事件流 + KPI |
-| `coverage.json` | 同上 → `/api/v1/plate/coverage`；「覆盖质量」tab | 建图覆盖率、三排分项、15 个车位的观测数 |
+| `coverage.json` | 同上 → `/api/v1/plate/coverage`；「覆盖质量」tab | 建图覆盖率、三排分项、15 个车位的观测数；末尾的 `rviz` 段指向全流程录屏 |
 | `acceptance.json` | `/api/v1/plate/acceptance`；「巡检结果」tab | 逐车结果、违停、补拍轮次 |
 | `cards/car_N.jpg` | 逐车卡片缩略图 | 静态素材 |
 | `media/replay.mp4` `poster.jpg` `cover_*.jpg` `heatmap.png` | 回放播放器与阶段封面 | 静态素材 |
+| `media/rviz_process.mp4` `rviz_process_poster.jpg` | 「覆盖质量」tab 的「点云与栅格深度融合」区块 | RViz 全流程录屏（1920×1080），元数据写在 `coverage.json` 的 `rviz` 段 |
 
 ## 二、`timeline.json`：已可复现（2026-11-15）
 
@@ -90,32 +91,65 @@ python3 scripts/onsite/v4e_coverage_report.py <in.npz> <out.json> <out.png> <采
 
 ## 四、静态素材：需要 ffmpeg
 
-`replay.mp4`、`poster.jpg`、`cover_survey.jpg`、`cover_inspect_r*.jpg`、`cover_wrap.jpg`
-都从该批的 `watch_raw.mp4`（1280×720 @15fps）转码与抽帧：
+### 4.1 过程回放（`replay.mp4` + 4~5 张封面）
+
+`replay.mp4` 就是该批的 `watch_raw.mp4` **原样重封装**（`-c copy`，不重编码）：
 
 ```bash
-# 原速回放片：854×480，CRF 32，无音轨
-ffmpeg -y -i watch_raw.mp4 -vf scale=854:480 -r 15 -an \
-       -c:v libx264 -crf 32 -preset medium -pix_fmt yuv420p \
-       -movflags +faststart replay.mp4
-
-# 阶段封面 480×270；取帧时刻 = 阶段中点 − offset_s
-ffmpeg -y -ss <t> -i replay.mp4 -frames:v 1 -vf scale=480:270 -q:v 2 cover_<key>.jpg
-cp cover_survey.jpg poster.jpg          # poster 就是 survey 封面
+ffmpeg -y -i watch_raw.mp4 -c copy -movflags +faststart replay.mp4
 ```
 
-当前这批（p10）：1212.0 s / 18180 帧 / **4.9 MB**（CRF 26 转的，比原定的 CRF 32 大一倍，
-画质更保守）；4 张封面 + poster，p10 只有 2 轮 INSPECT，**没有 `cover_inspect_r3`**。
-抽帧时刻为 191.3 / 735.3 / 1141.3 / 1211.3 s。
+- 源与成品都是 **1280×720 @15fps**（`watch_cam` 的 sensor 规格），比早先的 854×480 清晰一档；
+  录屏由 `scripts/onsite` 那条链无关，用的是 `watch_recorder`（见 §4.3）。
+- 分钟级体积约 8~11 MB：场景是固定监控机位、车不动，只有无人机在动，
+  x264 的 CRF 20 自然压得很狠。**片子小不等于糊**，要看就 `-ss` 抽一帧。
 
-片子小得反常（1212 s 只有几 MB）不是转码出错：场景是固定监控机位俯拍、车不动，
-只有无人机在动且占比不足 1%，实测 99.8% 宏块被 skip。要确认画质就 `-ss` 抽一帧看，
-画面是清晰的。
+封面按「阶段中点 − `offset_s`」抽，**640×360**，`poster.jpg` 直接复用 survey 那张：
 
-`wrap` 段中点常已超出录屏末尾（p10 差 9.3 s），ffmpeg 会取最后一帧，属正常。
-自检对这处的判据是：超出 ≤ 60 s 记 WARN 并注明「收尾段未被录屏覆盖」，> 60 s 才 FAIL。
+```bash
+ffmpeg -y -ss <t> -i replay.mp4 -frames:v 1 -vf scale=640:360 -q:v 2 cover_<key>.jpg
+cp cover_survey.jpg poster.jpg
+```
 
-**本机没有 ffmpeg**（`where ffmpeg` 为空），所以转码/抽帧只能在大机器上做。
+### 4.2 RViz 全流程录屏（`rviz_process.mp4`）
+
+覆盖质量页里那段「点云与栅格深度融合」的录屏，**不是话题录屏，是屏幕录制**——
+因为要同时看到 3D 障碍层与左下角的 RGB / 深度图两块面板，只有 RViz 界面能一次给全。
+
+```bash
+# 录：2560x1440 全屏 -> 1920x1080，NVENC，目标 8 Mbps
+ffmpeg -y -f x11grab -video_size 2560x1440 -framerate 15 -i :1 \
+       -vf scale=1920:1080:flags=bicubic \
+       -c:v h264_nvenc -preset medium -b:v 8M -maxrate 8M -bufsize 8M \
+       -pix_fmt yuv420p rviz_process.mp4
+
+# 收：动态内容实测 5.2 Mbps（757 MB / 19 min），太重，转成 12fps CRF 28 -> 约 70 MB
+ffmpeg -y -i rviz_process.mp4 -vf "fps=12,scale=1920:1080" \
+       -c:v libx264 -crf 28 -preset veryfast -pix_fmt yuv420p \
+       -movflags +faststart rviz_web.mp4
+```
+
+**两个必须知道的坑（都在实机踩过）：**
+
+1. **这台机器没跑窗口管理器**（`xprop -root _NET_ACTIVE_WINDOW` 返回 `0x0`，
+   `wmctrl`/`xdotool` 也没有），窗口层级就是「谁最后 map 谁在上」。
+   `gzclient` 后起来就把 RViz 整个盖住，录出来全是 Gazebo。
+   解法：`scripts/raise_rviz.sh` 直接调 `XRaiseWindow` 把 rviz 提到最前。
+2. **抓屏量亮度（YAVG）不能证明「看得见的是 RViz」**。第一次就是这么翻车的：
+   YAVG=113 判「可见」，实际亮的是盖在上面的 Gazebo，整段 20 分钟全白录。
+   正确的自检顺序是：先 `raise_rviz.sh` 提窗口 → 抓一帧**人眼看一次**
+   （或比对窗口树里 rviz 在 Gazebo 之上）→ 再开始长录制。
+
+### 4.3 `watch_raw.mp4` 怎么来
+
+用 `watch_recorder`（实机 `~/runs/watch_recorder_20261116.py`）把 `/watch/image_raw`
+按**墙钟节拍**写成 mp4：固定 15 Hz 定时器每拍写「最新一帧」，丢帧补重复帧。
+这样视频秒数 ≈ 墙钟秒数，`offset_s` 才对得上；逐帧写会因丢帧让视频比墙钟短，
+「点段首」整体偏。
+
+它开机第一帧会 `print` 一行 `[INFO] [<unix>]: 录制开始 ...` 到 stdout 并 flush——
+**这行就是 `offset_s` 的唯一可信来源**，必须落在 `record.log` 里
+（`rospy.loginfo` 走 logging 的块缓冲，重定向到文件时永远等不到 4 KB 刷新，所以是 print）。
 
 ## 五、交付自检（`scripts/check_replay_data.py`）
 
@@ -138,25 +172,39 @@ python scripts/check_replay_data.py --strict-batch   # 两处批次不同即 FAI
 - 唯一 WARN 是「末段 t1=1230 比录屏末尾 1220.7 晚 9 s」——脚本收尾比录屏停得晚，
   属正常，判据见 §四末段那条。
 
-### 批次不一致：已对齐到 p10（2026-11-16 修）
+### 批次现状：回放/覆盖/RViz 录屏三份同批，`acceptance.json` 仍是旧批
 
-原先 `acceptance.json` 是 **p10**（19:39:07 起），`timeline.json` 与 `coverage.json`
-是 **p9**（19:09:47 起）——「巡检结果」与「过程回放」展示的不是同一跑次，页面却不提示。
+2026-11-16 重新跑了一整轮并整批换掉：
 
-现在三份都是 `p10_v2_final2_20261114`，自检的批次项从 WARN 转为 OK。
-
-**为什么选 p10 而不是 p9**：p10 才是干净那轮。
-
-| | p9 | p10 |
+| 文件 | 批次 | 起始 |
 |---|---|---|
-| INSPECT 轮次 | **3 轮**（第 2 轮 `rc=4` 失败） | **2 轮**，全 `rc=0` |
-| `fail_classes` | `{rc_4: 1}` | `{}` |
-| 时长 | 1304.5 s | 1212.0 s |
+| `timeline.json`（过程回放） | `p12_accept_20261116_120345` | 12:03:48 |
+| `coverage.json`（覆盖质量） | 同上（采集 `map_20261116_120345`，267 帧） | — |
+| `coverage.rviz`（RViz 录屏） | 同上 | 12:07:16 起录 |
+| `acceptance.json`（巡检结果） | **`p10_v2_final2_20261114`（旧）** | 11-14 19:39:07 |
 
-把回放切到 p10 后，时间轴上不再出现一整轮失败的补拍。`acceptance.json` 本来就是 p10，
-现在三份数据讲的是一件事。
+前三份是一件事，`acceptance.json` 还停在 11-14 那轮——**它没有生成脚本**
+（全仓只有读方 `plateapp/api/detect.py`），所以没法跟着换。自检因此长期留 1 个 WARN，
+页面上那枚琥珀色「回放批次 ≠ 巡检结果批次」提示就是它。
 
-前端仍保留「回放批次 ≠ 巡检结果批次」的琥珀色提示，作为换批时的防呆。
+要消掉这个 WARN，得先补 `acceptance.json` 的生产脚本（输入应是该轮的
+`report.json` / 逐车结果），那是另一件事。
+
+### 本轮（p12）的关键读数
+
+| 项 | 值 |
+|---|---|
+| 结果 | `DONE`，`C_cap=1.000`（7/7），2 轮 INSPECT，墙钟 1235 s |
+| SURVEY | 400 s 发现 7 条 |
+| 过程回放视频 | 1147.9 s / 1280×720 / 17218 帧 |
+| RViz 录屏 | 1164.5 s / 1920×1080 / 12 fps / 70 MB |
+| 覆盖率 | ≥1 帧 98.68% / ≥3 帧 95.80% / ≥10 帧 62.53%（分母 19461 格） |
+| `offset_s` | **209.3 s** —— 录屏是任务开始后 3 分 29 秒才起的 |
+
+**`offset_s` 209 s 要讲清楚**：先起 RViz、再把它从 Gazebo 底下提上来（机器没有窗口管理器），
+提完才敢开录，所以前 3.5 分钟的 SURVEY 不在画面里。过程回放的阶段条仍按墙钟画，
+点 SURVEY 段首会 clamp 到视频 0 s（即任务第 209 s）。要补这段就得重跑一轮、
+把 `watch_recorder` 在 `rosmaster` 一起来就拉起（它不依赖 RViz，可以先录）。
 
 ### 媒体缓存：URL 已加内容戳（2026-11-16）
 

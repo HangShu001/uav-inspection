@@ -219,6 +219,19 @@ export interface CoverageData {
     min_dist: number
   }>
   image: string
+  /** RViz 全流程录屏：点云 + 占据栅格的深度融合过程（2026-11-16 加） */
+  rviz?: {
+    src: string
+    poster?: string
+    seconds: number
+    width: number
+    height: number
+    fps: number
+    run: string
+    note: string
+    /** 与覆盖质量同批次时为 true；不同批次前端要显式提示 */
+    same_batch: boolean
+  }
 }
 
 export const plateApi = {

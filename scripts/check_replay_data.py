@@ -234,6 +234,41 @@ def check_coverage(cv, slots_expected):
         add(OK, "覆盖", "slots %d 条" % len(slots))
 
 
+def check_rviz(cv, data_dir):
+    """RViz 全流程录屏：文件在不在、时长与声明是否一致、分辨率对不对。"""
+    rv = cv.get("rviz")
+    if not rv:
+        add(WARN, "RViz 录屏", "coverage.json 里没有 rviz 段（覆盖质量页不会显示录屏）")
+        return
+    src = rv.get("src") or ""
+    p = media_path(data_dir, src)
+    if not p or not os.path.isfile(p):
+        add(FAIL, "RViz 录屏", "引用的文件不存在：%s" % src)
+        return
+    if os.path.getsize(p) < 100 * 1024:
+        add(FAIL, "RViz 录屏", "文件只有 %d 字节，可疑" % os.path.getsize(p))
+        return
+    real = mp4_duration(p)
+    claim = rv.get("seconds")
+    if real is None:
+        add(WARN, "RViz 录屏", "解不出 mvhd，跳过时长比对")
+    elif claim is None:
+        add(WARN, "RViz 录屏", "没写时长，实测 %.1f s" % real)
+    elif abs(real - float(claim)) > 2.0:
+        add(FAIL, "RViz 录屏", "实测 %.1f s，声明 %.1f s，差 %.1f s"
+            % (real, float(claim), abs(real - float(claim))))
+    else:
+        add(OK, "RViz 录屏", "%.1f s / %dx%d（实测与声明一致）"
+            % (real, rv.get("width") or 0, rv.get("height") or 0))
+    poster = rv.get("poster")
+    if poster:
+        pp = media_path(data_dir, poster)
+        if not pp or not os.path.isfile(pp):
+            add(WARN, "RViz 录屏", "封面不存在：%s" % poster)
+    if not rv.get("same_batch", True):
+        add(WARN, "RViz 录屏", "录屏批次 %s 与覆盖质量数据不同批" % rv.get("run"))
+
+
 def check_acceptance(ac, data_dir):
     vs = ac.get("vehicles") or []
     if not vs:
@@ -311,6 +346,7 @@ def main(argv=None):
     if cv:
         check_assets(data_dir, cv, "coverage")
         check_coverage(cv, a.slots)
+        check_rviz(cv, data_dir)
     if ac:
         check_acceptance(ac, data_dir)
     if tl and ac:
