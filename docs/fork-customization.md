@@ -60,6 +60,20 @@
 识别器的输入输出约定写在 `plateapp/recognizer.py` 的文件头注释里。**约定不符不会报错，
 只会得到乱码**，所以页面对识别文本始终附带 `text_score`。
 
+### 3.1 账号开关：`UAV_AUTH_ENABLED`
+
+本 fork 自带 `authapp`（注册 / 登录 / 会话），而 `10.50.2.92/uav/` 那套平台**没有账号体系**。
+为让同一份构建既能独立部署、也能挂进平台，登录门做成了运行时开关：
+
+| `UAV_AUTH_ENABLED` | `/api/v1/auth/policy` | 页面表现 |
+|---|---|---|
+| 未设置 / `1` | `{"auth_enabled": true}` | 进模块先登录：`/xxx` → `/?login=1&redirect=/xxx` |
+| `0` / `false` / `off` / `no` | `{"auth_enabled": false}` | 不弹登录，首页显示「平台访客」，直接进模块 |
+
+前端启动只问一次策略（`src/stores/auth.ts` 的 `loadAuthPolicy`），**取不到就按「需要登录」兜底**，
+不会因为后端抖动把鉴权静默关掉。挂进 `/uav/` 时启动参数加 `UAV_AUTH_ENABLED=0` 即可，
+前端不用重新构建。约定由 `tests/test_auth_policy.py` 四条钉住。
+
 ### 4. 工程配套
 
 - `.gitattributes`：统一行尾（`.sh`/`.py`/`.ts` 一律 LF，`.bat` 保持 CRLF）。上游在 Windows

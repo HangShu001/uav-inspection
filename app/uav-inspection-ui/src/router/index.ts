@@ -40,6 +40,8 @@ const router = createRouter({
 router.beforeEach(async to => {
   if (to.path === '/') return true
   try { await loadAccount() } catch { return {path:'/',query:{login:'1',redirect:to.fullPath}} }
+  // 挂进不带账号体系的上游平台时（UAV_AUTH_ENABLED=0），不进登录门，与平台其它模块表现一致
+  if (!account.authEnabled) return true
   if (!account.user) return {path:'/',query:{login:'1',redirect:to.fullPath}}
   return true
 })

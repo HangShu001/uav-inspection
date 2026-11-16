@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { account, loadAccount, signOut } from '../stores/auth'
 import AccountDialog from '../components/common/AccountDialog.vue'
@@ -27,9 +27,12 @@ function safeDestination(value:unknown){return typeof value==='string' && value.
 function closeAccount(){accountOpen.value=false;pendingPath.value='';if(currentRoute.query.login)void router.replace({path:'/'})}
 async function accountSuccess(){accountOpen.value=false;const path=pendingPath.value || safeDestination(currentRoute.query.redirect);pendingPath.value='';if(path)await router.push(path);else if(currentRoute.query.login)await router.replace({path:'/'})}
 async function logout(){signingOut.value=true;accountError.value='';try{await signOut()}catch(reason){accountError.value=reason instanceof Error?reason.message:'退出失败，请重试'}finally{signingOut.value=false}}
-function checkLoginQuery(){if(currentRoute.query.login==='1'){pendingPath.value=safeDestination(currentRoute.query.redirect);openAccount('login')}}
+function checkLoginQuery(){if(!account.authEnabled)return;if(currentRoute.query.login==='1'){pendingPath.value=safeDestination(currentRoute.query.redirect);openAccount('login')}}
 watch(()=>currentRoute.query.login,checkLoginQuery)
-onMounted(async()=>{checkLoginQuery();try{await loadAccount()}catch(reason){accountError.value=reason instanceof Error?reason.message:'账号服务暂不可用'}})
+// 先取账号策略再判 URL：挂进平台时 authEnabled=false，此时不该弹登录门
+onMounted(async()=>{try{await loadAccount()}catch(reason){accountError.value=reason instanceof Error?reason.message:'账号服务暂不可用'}checkLoginQuery()})
+const greeting = computed(()=>account.user?`欢迎回来，${account.user.username}`:'欢迎使用巡检平台')
+const accountHint = computed(()=>account.user||!account.authEnabled?'选择下方业务模块，开始本次作业。':'登录或注册账号，进入巡检业务工作台。')
 
 const modules = [
   {
@@ -170,7 +173,8 @@ const handleNavigation = async (path: string) => {
   accountError.value=''
   try {
     await loadAccount()
-    if(!account.user){pendingPath.value=path;openAccount('login');return}
+    // 无账号体系的部署（挂进平台时）直接进模块，不弹登录
+    if(account.authEnabled && !account.user){pendingPath.value=path;openAccount('login');return}
     await router.push(path)
   } catch(reason) { accountError.value=reason instanceof Error?reason.message:'暂时无法进入模块，请稍后重试。' }
 }
@@ -189,7 +193,7 @@ const handleNavigation = async (path: string) => {
 
     <main class="mx-auto w-full max-w-[1500px] flex-1 px-4 py-4 sm:px-8 sm:py-8">
       <section class="home-account" aria-label="平台账号">
-        <div class="home-account-main"><div class="home-account-avatar"><UserRound :size="25"/></div><div class="home-account-copy"><h2>{{ account.user ? `欢迎回来，${account.user.username}` : '欢迎使用巡检平台' }}</h2><p>{{ account.user ? '选择下方业务模块，开始本次作业。' : '登录或注册账号，进入巡检业务工作台。' }}</p></div><div class="home-account-actions"><template v-if="!account.user"><button class="home-login" @click="openAccount('login')"><LogIn :size="15"/>登录</button><button class="home-register" @click="openAccount('register')"><UserPlus :size="15"/>注册</button></template><button v-else class="home-register" :disabled="signingOut" @click="logout"><LogOut :size="15"/>{{ signingOut ? '正在退出…' : '退出登录' }}</button></div></div>
+        <div class="home-account-main"><div class="home-account-avatar"><UserRound :size="25"/></div><div class="home-account-copy"><h2>{{ greeting }}</h2><p>{{ accountHint }}</p></div><div class="home-account-actions"><template v-if="account.authEnabled"><template v-if="!account.user"><button class="home-login" @click="openAccount('login')"><LogIn :size="15"/>登录</button><button class="home-register" @click="openAccount('register')"><UserPlus :size="15"/>注册</button></template><button v-else class="home-register" :disabled="signingOut" @click="logout"><LogOut :size="15"/>{{ signingOut ? '正在退出…' : '退出登录' }}</button></template><span v-else class="home-guest">平台访客</span></div></div>
         <div class="home-account-hint">默认账号：<strong>admin</strong><span></span>默认密码：<strong>admin123</strong></div>
         <p v-if="accountError" class="home-account-error" role="alert">{{ accountError }}</p>
       </section>
@@ -229,5 +233,5 @@ const handleNavigation = async (path: string) => {
 
 
 <style scoped>
-.home-account{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:25px;box-shadow:0 5px 20px -18px #0f172a40;padding:20px 24px;color:#475569}.home-account-main{display:flex;align-items:center;gap:14px}.home-account-avatar{height:48px;width:48px;display:grid;place-items:center;border:1px solid #dbeafe;background:linear-gradient(140deg,#eff6ff,#eef2ff);color:#4169d4;border-radius:12px;flex-shrink:0}.home-account-copy h2{font-size:16px;color:#1e293b;font-weight:650}.home-account-copy p{font-size:12px;color:#94a3b8;margin-top:6px}.home-account-actions{margin-left:auto;display:flex;gap:9px;align-items:center}.home-account-actions button{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;font-size:12px;font-weight:600;border:1px solid transparent;border-radius:6px;white-space:nowrap}.home-login{background:#315bd2;color:white;box-shadow:0 3px 8px #315bd21a}.home-login:hover{background:#254bb7}.home-account-actions button.home-register{background:white;color:#526785;border-color:#dce3ef}.home-account-actions button.home-register:hover{background:#f8fafc}.home-account-actions button:disabled{opacity:.5;cursor:not-allowed}.home-account-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;margin-top:16px;padding-top:13px}.home-account-hint strong{font-family:ui-monospace,monospace;color:#334155;font-weight:500;font-size:13px}.home-account-hint>span{height:10px;width:1px;background:#e2e8f0;margin:0 9px}.home-account-error{font-size:12px;color:#be123c;margin-top:12px;line-height:1.7}@media(max-width:600px){.home-account{padding:17px;margin-bottom:17px}.home-account-main{flex-wrap:wrap;gap:12px}.home-account-avatar{height:42px;width:42px}.home-account-copy h2{font-size:14px}.home-account-copy p{font-size:11px}.home-account-actions{margin-left:0;width:100%;padding-top:2px}.home-account-actions button{flex:1}.home-account-hint{gap:3px;font-size:10px}.home-account-hint strong{font-size:11px}.home-account-hint>span{margin:0 5px}}
+.home-account{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:25px;box-shadow:0 5px 20px -18px #0f172a40;padding:20px 24px;color:#475569}.home-account-main{display:flex;align-items:center;gap:14px}.home-account-avatar{height:48px;width:48px;display:grid;place-items:center;border:1px solid #dbeafe;background:linear-gradient(140deg,#eff6ff,#eef2ff);color:#4169d4;border-radius:12px;flex-shrink:0}.home-account-copy h2{font-size:16px;color:#1e293b;font-weight:650}.home-account-copy p{font-size:12px;color:#94a3b8;margin-top:6px}.home-account-actions{margin-left:auto;display:flex;gap:9px;align-items:center}.home-account-actions button{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;font-size:12px;font-weight:600;border:1px solid transparent;border-radius:6px;white-space:nowrap}.home-login{background:#315bd2;color:white;box-shadow:0 3px 8px #315bd21a}.home-login:hover{background:#254bb7}.home-account-actions button.home-register{background:white;color:#526785;border-color:#dce3ef}.home-account-actions button.home-register:hover{background:#f8fafc}.home-account-actions button:disabled{opacity:.5;cursor:not-allowed}.home-account-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;margin-top:16px;padding-top:13px}.home-account-hint strong{font-family:ui-monospace,monospace;color:#334155;font-weight:500;font-size:13px}.home-account-hint>span{height:10px;width:1px;background:#e2e8f0;margin:0 9px}.home-account-error{font-size:12px;color:#be123c;margin-top:12px;line-height:1.7}.home-guest{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px;font-weight:600;color:#526785;background:#f8fafc;border:1px solid #dce3ef;border-radius:6px}@media(max-width:600px){.home-account{padding:17px;margin-bottom:17px}.home-account-main{flex-wrap:wrap;gap:12px}.home-account-avatar{height:42px;width:42px}.home-account-copy h2{font-size:14px}.home-account-copy p{font-size:11px}.home-account-actions{margin-left:0;width:100%;padding-top:2px}.home-account-actions button{flex:1}.home-account-hint{gap:3px;font-size:10px}.home-account-hint strong{font-size:11px}.home-account-hint>span{margin:0 5px}}
 </style>

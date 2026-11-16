@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { CircleAlert, ImageUp, Layers, RefreshCw, ScanLine, Sparkles } from 'lucide-vue-next'
+import { computed, markRaw, onMounted, onUnmounted, ref, watch } from 'vue'
+import { CircleAlert, ClipboardList, Film, ImageUp, Layers, RefreshCw, ScanLine, Sparkles } from 'lucide-vue-next'
 import InspectionHeader from '../components/common/InspectionHeader.vue'
 import FloatingNotice from '../components/common/FloatingNotice.vue'
 import {
@@ -17,6 +17,15 @@ import {
 type TabKey = 'detect' | 'result' | 'replay' | 'coverage'
 
 const activeTab = ref<TabKey>('detect')
+// 视图切换条：与平台其它模块页同一套卡片语言（白底 + 细边 + 选中淡色）。
+// markRaw 防止组件对象被响应式包装后触发 "made reactive" 警告。
+const tabs: ReadonlyArray<{ key: TabKey; label: string; icon: unknown }> = [
+  { key: 'detect', label: '实时检测', icon: markRaw(ScanLine) },
+  { key: 'result', label: '巡检结果', icon: markRaw(ClipboardList) },
+  { key: 'replay', label: '过程回放', icon: markRaw(Film) },
+  { key: 'coverage', label: '覆盖质量', icon: markRaw(Layers) },
+]
+const refreshing = ref(false)
 const online = ref<boolean | null>(null)
 const info = ref<PlateInfoResult | null>(null)
 const acceptance = ref<AcceptanceData | null>(null)
@@ -110,6 +119,21 @@ async function loadInfo() {
     confThreshold.value = result.data.config.confidence
   } catch {
     info.value = null
+  }
+}
+
+async function refreshAll() {
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    await refreshHealth()
+    await loadInfo()
+    // 只刷当前视图的数据，避免一次点击把 70 MB 录屏的元数据也拉一遍
+    if (activeTab.value === 'result') await loadAcceptance()
+    else if (activeTab.value === 'replay') await loadReplay()
+    else if (activeTab.value === 'coverage') await loadCoverage()
+  } finally {
+    refreshing.value = false
   }
 }
 
@@ -281,65 +305,55 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mobile-page relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-800">
-    <div class="pointer-events-none absolute top-[-10%] right-[-6%] h-[38%] w-[38%] rounded-full bg-indigo-300/20 blur-[120px]"></div>
-    <div class="pointer-events-none absolute bottom-[-12%] left-[-6%] h-[38%] w-[38%] rounded-full bg-sky-300/16 blur-[120px]"></div>
-
-    <div class="relative z-10 px-4 pt-4 md:px-6">
+  <div class="mobile-page relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-800 xl:flex xl:h-screen xl:min-h-0 xl:flex-col xl:overflow-hidden">
+    <div class="relative z-10 w-full shrink-0 px-4 pt-4 md:px-5">
       <InspectionHeader title="车辆车牌巡检" :task-name="batchLabel" task-label="巡检批次" :online="online">
         <template #actions>
           <button
-            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
-            :class="activeTab === 'detect'
-              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
-              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
+            class="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-sm font-medium text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
             @click="activeTab = 'detect'"
           >
-            实时检测
+            <ScanLine :size="17" />
+            导入检测
           </button>
           <button
-            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
-            :class="activeTab === 'result'
-              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
-              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
-            @click="activeTab = 'result'"
+            class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50"
+            :disabled="refreshing"
+            @click="refreshAll"
           >
-            巡检结果
-          </button>
-          <button
-            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
-            :class="activeTab === 'replay'
-              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
-              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
-            @click="activeTab = 'replay'"
-          >
-            过程回放
-          </button>
-          <button
-            class="rounded-2xl border px-5 py-3 text-sm font-medium transition"
-            :class="activeTab === 'coverage'
-              ? 'border-indigo-300 bg-indigo-600 text-white shadow-[0_10px_25px_-15px_rgba(79,70,229,0.9)]'
-              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'"
-            @click="activeTab = 'coverage'"
-          >
-            覆盖质量
-          </button>
-          <button
-            class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50"
-            @click="refreshHealth(); loadInfo()"
-          >
-            <RefreshCw :size="16" class="inline" />
+            <RefreshCw :size="17" :class="refreshing ? 'animate-spin' : ''" />
+            {{ refreshing ? '刷新中...' : '刷新数据' }}
           </button>
         </template>
       </InspectionHeader>
+
+      <!-- 模块内视图切换：与页头同宽、同一套卡片语言，四个视图仍在同一页面内 -->
+      <nav class="mt-3 flex items-center gap-1.5 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1.5 shadow-sm">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          class="inline-flex flex-none items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition"
+          :class="activeTab === tab.key
+            ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+            : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800'"
+          @click="activeTab = tab.key"
+        >
+          <component :is="tab.icon" :size="16" />
+          {{ tab.label }}
+        </button>
+        <span class="ml-auto hidden flex-none items-center gap-2 pr-2 text-xs text-slate-500 sm:inline-flex">
+          {{ batchLabel }}
+        </span>
+      </nav>
     </div>
 
     <FloatingNotice :message="noticeMessage" :tone="noticeTone" :trigger="noticeTrigger" :duration="3600" centered />
 
     <!-- 实时检测 -->
-    <main v-if="activeTab === 'detect'" class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[368px_minmax(0,1fr)]">
+    <main v-if="activeTab === 'detect'" class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[368px_minmax(0,1fr)] xl:overflow-y-auto">
       <aside class="space-y-3">
-        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-base font-semibold text-slate-900">投放图片</h2>
             <span class="flex items-center gap-2 text-xs text-slate-500">
@@ -349,7 +363,7 @@ onUnmounted(() => {
           </div>
 
           <div
-            class="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center transition"
+            class="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-8 text-center transition"
             :class="dragging ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-slate-50/80 hover:border-indigo-300 hover:bg-indigo-50/60'"
             @click="pickFile"
             @dragover.prevent="dragging = true"
@@ -383,7 +397,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-slate-900">模型状态</h2>
           <div class="mt-3 space-y-2 text-sm">
             <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2">
@@ -411,7 +425,7 @@ onUnmounted(() => {
       </aside>
 
       <section class="space-y-3">
-        <div class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.22)]">
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-base font-semibold text-slate-900">检测画面</h2>
             <div class="flex items-center gap-2">
@@ -436,7 +450,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="mt-3 flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-900/95">
+          <div class="mt-3 flex min-h-[320px] items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-900/95">
             <img v-if="previewUrl" :src="previewUrl" alt="检测画面" class="max-h-[560px] w-full object-contain" />
             <div v-else class="px-6 py-16 text-center text-slate-400">
               <ScanLine :size="38" class="mx-auto" />
@@ -464,7 +478,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h2 class="text-base font-semibold text-slate-900">识别结果</h2>
           <div v-if="!detections.length" class="mt-3 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
             {{ hasResult ? '本帧没有检出车牌' : '等待检测' }}
@@ -502,8 +516,8 @@ onUnmounted(() => {
     </main>
 
     <!-- 巡检结果 -->
-    <main v-else-if="activeTab === 'result'" class="relative z-10 space-y-4 px-4 pb-8 pt-2 md:px-6">
-      <section v-if="!acceptance" class="rounded-[24px] border border-white bg-white/90 px-6 py-14 text-center shadow-sm">
+    <main v-else-if="activeTab === 'result'" class="relative z-10 space-y-4 px-4 pb-8 pt-2 md:px-5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
+      <section v-if="!acceptance" class="rounded-lg border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
         <Layers :size="36" class="mx-auto text-slate-300" />
         <p class="mt-3 text-sm text-slate-500">
           {{ loadingAcceptance ? '正在载入巡检结果…' : '还没有可回放的巡检批次。' }}
@@ -511,7 +525,7 @@ onUnmounted(() => {
       </section>
 
       <template v-else>
-        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold text-slate-900">最近一次自主巡检</h2>
@@ -529,7 +543,7 @@ onUnmounted(() => {
             <div
               v-for="card in summaryCards"
               :key="card.label"
-              class="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3"
+              class="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-3"
             >
               <div class="text-xs text-slate-500">{{ card.label }}</div>
               <div class="mt-1 text-xl font-semibold text-slate-900">{{ card.value }}</div>
@@ -538,7 +552,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-semibold text-slate-900">车辆认定</h2>
             <span class="text-xs text-slate-500">点击缩略图查看识别卡</span>
@@ -580,7 +594,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-semibold text-slate-900">违停判定</h2>
             <span class="text-xs text-slate-500">最小余量为负即越界</span>
@@ -634,7 +648,7 @@ onUnmounted(() => {
           </p>
         </section>
 
-        <section class="rounded-[24px] border border-indigo-100 bg-indigo-50/60 p-4">
+        <section class="rounded-lg border border-indigo-100 bg-indigo-50/60 p-4">
           <div class="flex items-start gap-3">
             <Sparkles :size="18" class="mt-0.5 shrink-0 text-indigo-500" />
             <div class="text-xs leading-relaxed text-indigo-900">
@@ -652,9 +666,9 @@ onUnmounted(() => {
     <!-- 过程回放 -->
     <main
       v-else-if="activeTab === 'replay'"
-      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px]"
+      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_340px] xl:overflow-y-auto"
     >
-      <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+      <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div v-if="loadingReplay" class="py-24 text-center text-slate-500">正在载入回放…</div>
         <div v-else-if="!replay" class="py-24 text-center text-slate-500">
           {{ replayError || '没有可用的回放数据。' }}
@@ -679,7 +693,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="overflow-hidden rounded-2xl bg-slate-900">
+          <div class="overflow-hidden rounded-lg bg-slate-900">
             <video
               ref="videoEl"
               :src="replay.video.src"
@@ -730,7 +744,7 @@ onUnmounted(() => {
       <aside class="space-y-3">
         <section
           v-if="replay"
-          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <h3 class="text-sm font-semibold text-slate-800">任务结果</h3>
           <dl class="mt-3 space-y-2 text-sm">
@@ -766,7 +780,7 @@ onUnmounted(() => {
 
         <section
           v-if="replay"
-          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <h3 class="text-sm font-semibold text-slate-800">关键事件</h3>
           <ul class="mt-2 max-h-[300px] space-y-1.5 overflow-auto pr-1 text-[11px] leading-snug">
@@ -782,10 +796,10 @@ onUnmounted(() => {
     <!-- 覆盖质量 -->
     <main
       v-else-if="activeTab === 'coverage'"
-      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px]"
+      class="relative z-10 grid grid-cols-1 gap-4 px-4 pb-6 pt-2 md:px-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_340px] xl:overflow-y-auto"
     >
       <div class="space-y-4">
-      <section class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]">
+      <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div v-if="loadingCoverage" class="py-24 text-center text-slate-500">正在载入覆盖质量…</div>
         <div v-else-if="!coverage" class="py-24 text-center text-slate-500">没有可用的覆盖质量数据。</div>
         <template v-else>
@@ -798,14 +812,14 @@ onUnmounted(() => {
               栅格 {{ coverage.source.cell_m }} m · 观测 {{ coverage.source.frames_used }} 帧 · {{ coverage.source.grid[0] }}×{{ coverage.source.grid[1] }}
             </p>
           </div>
-          <img :src="coverage.image" alt="L4 覆盖质量热力图" class="w-full rounded-2xl border border-slate-200" />
+          <img :src="coverage.image" alt="L4 覆盖质量热力图" class="w-full rounded-lg border border-slate-200" />
           <p class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ coverage.source.note }}。</p>
         </template>
       </section>
 
       <section
         v-if="coverageRviz"
-        class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.24)]"
+        class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
       >
         <div class="flex flex-wrap items-baseline justify-between gap-2 pb-3">
           <div>
@@ -822,7 +836,7 @@ onUnmounted(() => {
         <video
           :src="coverageRviz.src"
           :poster="coverageRviz.poster"
-          class="w-full rounded-2xl border border-slate-200 bg-slate-950"
+          class="w-full rounded-lg border border-slate-200 bg-slate-950"
           controls
           preload="metadata"
           playsinline
@@ -837,7 +851,7 @@ onUnmounted(() => {
       <aside class="space-y-3">
         <section
           v-if="coverage"
-          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <h3 class="text-sm font-semibold text-slate-800">分级占比</h3>
           <p class="mt-1 text-[11px] text-slate-500">
@@ -862,7 +876,7 @@ onUnmounted(() => {
 
         <section
           v-if="coverage"
-          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <h3 class="text-sm font-semibold text-slate-800">分排质量</h3>
           <table class="mt-2 w-full text-xs">
@@ -885,7 +899,7 @@ onUnmounted(() => {
 
         <section
           v-if="coverage"
-          class="rounded-[24px] border border-white bg-white/90 p-4 shadow-[0_12px_40px_-20px_rgba(79,70,229,0.18)]"
+          class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
         >
           <h3 class="text-sm font-semibold text-slate-800">车位处质量</h3>
           <div class="mt-2 max-h-[240px] overflow-auto">

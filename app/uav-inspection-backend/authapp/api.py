@@ -19,6 +19,18 @@ COOKIE_NAME = 'uav_session'
 SESSION_SECONDS = 24 * 60 * 60
 PASSWORD_ROUNDS = 300_000
 
+# 部署到已有账号体系的上游平台（例如 /uav/ 那套没有 authapp）时置 UAV_AUTH_ENABLED=0：
+# 前端启动时问一次，关掉就不弹登录门、直接把访问者当平台访客。
+# 这样同一份构建既能独立部署（带登录），也能挂进平台（不带登录），不必出两套包。
+AUTH_ENABLED = os.getenv('UAV_AUTH_ENABLED', '1').strip().lower() not in ('0', 'false', 'off', 'no')
+
+
+@router.get('/policy')
+def policy():
+    """账号策略：告诉前端这个部署要不要登录。"""
+    return {'code': 200, 'message': 'success', 'data': {'auth_enabled': AUTH_ENABLED}}
+
+
 
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)

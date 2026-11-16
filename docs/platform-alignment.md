@@ -342,19 +342,31 @@ cd app/uav-inspection-ui && VITE_BASE=/uav/ npm run build
 **后果**：把这套构建部署到那台机器，首页会变成"请登录"，所有子页面要注册后才能进——
 **这是平台现状的可见变化**，不是技术问题。
 
-**我的默认方案（可直接执行，不需要你决策）**：**保留登录，但独立部署**。
-理由是这台机器的 `/uav/` 是别人的生产入口，已有用户和链接；用另一个端口/前缀
-（如 `127.0.0.1:18021` + `/uav-plate/`）并存，互不影响。
-真要合到同一个 `/uav/`，必须先把 auth 做成开关：
+**已落地的方案（2026-11-16 晚，比原方案更省）**：**登录做成运行时开关，默认仍是登录，挂进 `/uav/` 时关掉。**
+不再需要双端口并存，也不再需要两套构建。
 
 ```python
-# heatmapapp/main.py
-if os.getenv('UAV_AUTH_ENABLED', '1') == '1':
-    app.include_router(auth_api.router, prefix='/api/v1/auth', tags=['账号'])
+# authapp/api.py —— 模块级读一次，进程启动时定
+AUTH_ENABLED = os.getenv('UAV_AUTH_ENABLED', '1').strip().lower() not in ('0', 'false', 'off', 'no')
+
+@router.get('/policy')
+def policy():
+    return {'code': 200, 'message': 'success', 'data': {'auth_enabled': AUTH_ENABLED}}
 ```
 
-前端对应 `beforeEach` 读一个运行时开关（`/api/deployment/status` 里返回 `auth_enabled`），
-关掉时直接放行。这一改动约 20 行，等真正合并时再做，不提前引入分支。
+前端不再翻 `/api/deployment/status`（那是给「部署就绪」用的，语义不同），改为启动时问一次
+`/api/v1/auth/policy`：`stores/auth.ts` 的 `loadAuthPolicy()` 把结果写进 `account.authEnabled`，
+`router.beforeEach` 在 `authEnabled === false` 时直接放行，`HomeView` 隐藏登录/注册、显示「平台访客」。
+
+**兜底方向要记住**：policy 取不到（网络抖动、老后端没这个端点）时保持 `authEnabled = true`，
+即**宁可多要一次登录，也不静默放开鉴权**。由 `tests/test_auth_policy.py` 四条钉住。
+
+同一份 `dist` 的两种实测表现（同一浏览器、同样的干净 cookie 上下文，只差启动参数）：
+
+| 启动参数 | 访问 `/plate` 的结果 |
+|---|---|
+| 默认 | 跳 `/?login=1&redirect=/plate`（登录门生效） |
+| `UAV_AUTH_ENABLED=0` | 停在 `/plate`（直接进模块） |
 
 ---
 
@@ -467,8 +479,8 @@ print(d['modules']['plate'])"
 
 ## 8 执行记录（2026-11-16 19:5x）
 
-P0-1 / P0-2 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 / P2-3 已落地。P0-3（构建参数）属出包动作，
-P0-4（auth 开关）按第 4 节留到真正并入 `/uav/` 时再做。
+P0-1 / P0-2 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 / P2-3 已落地；P0-4（auth 开关）已按第 4 节
+实现为运行时开关 `UAV_AUTH_ENABLED`（见下节 9.2）。P0-3（构建参数）属出包动作。
 
 ### 改了什么
 
@@ -504,3 +516,52 @@ P0-4（auth 开关）按第 4 节留到真正并入 `/uav/` 时再做。
 1. `build_delivery.py` 原「车牌回放随源码走」那段走的是 `backend/"plateapp"/"data"`，而该目录从来不存在——**一直是空转**，交付包里从来没有回放数据；现由 `RUNTIME_DIRS` 统一收。
 2. `ACTIVE_WEIGHTS` 缺 `plateapp/plate-det-best.pt`，数据包里不会带车牌权重。
 3. `docs/plate-replay-data.md` 两处失真：接口写成 `/api/v1/plate/timeline`（实际 `/replay`）、批次写 p10（实际 p12）。
+
+---
+
+## 9 页面观感对齐（2026-11-16 晚）
+
+功能上早就是同一个平台（首页第 13 个模块卡、同一套路由、同一个 `InspectionHeader`），
+但**形状语言是两套**：平台 12 个模块页只用 `rounded-lg`，我们这页用了 17 处
+`rounded-[24px]` + 11 处 `rounded-2xl` + 4 种自定义紫色阴影。放在一起就是"贴进来的外挂"。
+
+### 9.1 逐项差异与处理
+
+| 项 | 平台（wall / roof / power 等） | 我们原样 | 现状 |
+|---|---|---|---|
+| 卡片圆角 | `rounded-lg`（63 处），只有弹层用 `rounded-xl` | `rounded-[24px]` 17 处、`rounded-2xl` 11 处 | 均为 0，全改 `rounded-lg`（30 处） |
+| 卡片底色与边框 | `border border-slate-200 bg-white` | `border border-white bg-white/90` 16 处 | 已改（半透明+白边是弹层写法，不是卡片写法） |
+| 阴影 | `shadow-sm`，弹层 `shadow-2xl` | 4 种 `shadow-[0_12px_40px_-20px_rgba(79,70,229,…)]` | 全改 `shadow-sm`（19 处） |
+| 页面容器 | `xl:h-screen xl:flex xl:flex-col xl:overflow-hidden`，内容区各自滚 | 整页滚动 | 已加；4 个内容区补 `xl:min-h-0 xl:flex-1 xl:overflow-y-auto` |
+| 页头 | `InspectionHeader` + 操作按钮（`rounded-lg` + 淡色底 + 品牌色文字） | 4 个视图页签塞进 `#actions`，`rounded-2xl` + indigo 实底 | 页签移出成独立一条；页头只留「导入检测」「刷新数据」两个操作 |
+| 装饰 | 无 | 2 个 indigo/sky 大模糊圆（`blur-[120px]`） | 已删 |
+| 横向内边距 | `md:px-5` | 页头 `md:px-6`、内容区 `md:px-6` | 统一 `md:px-5` |
+| 账号入口 | 无账号体系 | 登录门 + 登录/注册按钮 | 运行时开关（见 9.2），关掉后显示「平台访客」 |
+
+四个视图仍是**同一页面内**切换（`nav` 条 + `v-else-if`），不是四个独立路由——
+与平台"一模块一页"的形态一致，没有把车牌拆成四个入口。
+
+### 9.2 账号开关
+
+见 `fork-customization.md` 第 3.1 节。要点：`UAV_AUTH_ENABLED` 控制
+`/api/v1/auth/policy` 的返回值，前端启动问一次，关掉就不弹登录门；取不到按「需要登录」兜底。
+
+实测（同一份 `dist`、同一浏览器、干净的 `localhost` cookie 上下文）：
+
+| 启动参数 | `GET /plate` 落点 |
+|---|---|
+| 默认 | `/?login=1&redirect=/plate` |
+| `UAV_AUTH_ENABLED=0` | `/plate`（直接进） |
+
+### 9.3 验证
+
+| 项 | 结果 |
+|---|---|
+| `vue-tsc --noEmit` | 0 报错 |
+| `npm run build` | 成功，主包含 `auth/policy` / `authEnabled` / `平台访客` |
+| 类名统计 | `rounded-[24px]` 0、`rounded-2xl` 0、`rounded-lg` 30、`shadow-sm` 19 |
+| 后端测试（8 个 pattern 逐个跑） | 全 OK，其中 `test_auth_policy` 新增 4 条 |
+| 策略端点（两实例） | 默认 `true`；`UAV_AUTH_ENABLED=0` 为 `false` |
+
+**没做像素级截图比对**：本机浏览器截图通道持续报 "exceeds the 10 MiB image limit"
+（900×560、quality 25 也报），故改用类名统计 + DOM 结构 + URL 行为三点取证。
