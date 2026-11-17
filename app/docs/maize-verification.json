@@ -1,0 +1,135 @@
+{
+  "date": "2026-11-17",
+  "browser": "Chrome headless, software WebGL",
+  "offline_replay": {
+    "cases": [
+      {
+        "plant_count": 1,
+        "method": "shared",
+        "coverage": "91.8%",
+        "recall": "91.0%",
+        "false_fraction": "3.8%"
+      },
+      {
+        "plant_count": 1,
+        "method": "fixed",
+        "coverage": "85.1%",
+        "recall": "83.5%",
+        "false_fraction": "21.5%"
+      },
+      {
+        "plant_count": 1,
+        "method": "snake",
+        "coverage": "24.3%",
+        "recall": "32.3%",
+        "false_fraction": "86.8%"
+      },
+      {
+        "plant_count": 2,
+        "method": "shared",
+        "coverage": "73.5%",
+        "recall": "91.5%",
+        "false_fraction": "9.5%"
+      },
+      {
+        "plant_count": 2,
+        "method": "fixed",
+        "coverage": "33.8%",
+        "recall": "83.9%",
+        "false_fraction": "30.1%"
+      },
+      {
+        "plant_count": 2,
+        "method": "snake",
+        "coverage": "2.7%",
+        "recall": "65.6%",
+        "false_fraction": "57.5%"
+      },
+      {
+        "plant_count": 3,
+        "method": "shared",
+        "coverage": "57.7%",
+        "recall": "88.7%",
+        "false_fraction": "9.4%"
+      },
+      {
+        "plant_count": 3,
+        "method": "fixed",
+        "coverage": "28.5%",
+        "recall": "83.6%",
+        "false_fraction": "29.6%"
+      },
+      {
+        "plant_count": 3,
+        "method": "snake",
+        "coverage": "3.9%",
+        "recall": "72.5%",
+        "false_fraction": "57.5%"
+      }
+    ],
+    "json_download": true,
+    "page_errors": [],
+    "external_requests": []
+  },
+  "platform": {
+    "audit": [
+      {
+        "prefix": "/",
+        "loginRedirect": true,
+        "sceneReady": true,
+        "pause": true,
+        "seek": true,
+        "comparisonDownload": true,
+        "mobileWidths": {
+          "parent": {
+            "width": 390,
+            "scroll": 390
+          },
+          "child": {
+            "width": 390,
+            "scroll": 390
+          }
+        },
+        "returnAndReenter": true,
+        "refresh": true,
+        "errors": [],
+        "resources": []
+      },
+      {
+        "prefix": "/uav",
+        "loginRedirect": true,
+        "sceneReady": true,
+        "pause": true,
+        "seek": true,
+        "comparisonDownload": true,
+        "mobileWidths": {
+          "parent": {
+            "width": 390,
+            "scroll": 390
+          },
+          "child": {
+            "width": 390,
+            "scroll": 390
+          }
+        },
+        "returnAndReenter": true,
+        "refresh": true,
+        "errors": [],
+        "resources": []
+      }
+    ],
+    "assetFailureAndRetry": true,
+    "authentication": "local test responses; production auth not exercised"
+  },
+  "checks": {
+    "python_delivery_and_integrity_tests": 18,
+    "node_test_files": 3,
+    "typecheck": true,
+    "root_production_build": true,
+    "uav_subpath_production_build": true
+  },
+  "limitations": [
+    "Platform authentication requests used local test responses; production authentication service was not exercised.",
+    "No server deployment or real drone / field diagnosis was performed."
+  ]
+}

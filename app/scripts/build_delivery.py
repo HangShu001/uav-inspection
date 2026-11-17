@@ -207,7 +207,8 @@ def collect_files(root: Path, include_data: bool = True) -> list[Entry]:
                 add(path, "app")
         for path in walk_files(frontend / "public"):
             if path.relative_to(frontend / "public").parts[0] not in {"rose-pictures", "images"}:
-                if path.suffix.lower() in UI_ASSET_SUFFIXES or path.name in {"robots.txt", "manifest.json"}:
+                maize_source = path.relative_to(frontend / "public").parts[0] == "maize" and path.suffix.lower() in TEXT_SOURCE_SUFFIXES
+                if maize_source or path.suffix.lower() in UI_ASSET_SUFFIXES or path.name in {"robots.txt", "manifest.json"}:
                     add(path, "app")
 
     if include_data:

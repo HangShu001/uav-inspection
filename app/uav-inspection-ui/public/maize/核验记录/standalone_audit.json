@@ -1,0 +1,55 @@
+{
+  "status": "SELF_CONTAINED_OFFLINE_PASS",
+  "html_sha256": "c65f2473a7511e5044fa667fc5abfe464d5a44534126511399c98181bfa42596",
+  "html_bytes": 70857925,
+  "checks": [
+    {
+      "n": 1,
+      "method": "shared",
+      "photos": 24
+    },
+    {
+      "n": 1,
+      "method": "fixed",
+      "photos": 24
+    },
+    {
+      "n": 1,
+      "method": "snake",
+      "photos": 24
+    },
+    {
+      "n": 2,
+      "method": "shared",
+      "photos": 24
+    },
+    {
+      "n": 2,
+      "method": "fixed",
+      "photos": 24
+    },
+    {
+      "n": 2,
+      "method": "snake",
+      "photos": 24
+    },
+    {
+      "n": 3,
+      "method": "shared",
+      "photos": 24
+    },
+    {
+      "n": 3,
+      "method": "fixed",
+      "photos": 24
+    },
+    {
+      "n": 3,
+      "method": "snake",
+      "photos": 24
+    }
+  ],
+  "errors": [],
+  "external_network_requests": [],
+  "embedded_licenses_and_texture_metadata": true
+}

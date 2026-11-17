@@ -1,0 +1,27 @@
+{
+  "status": "JOINT_SCENE_OFFLINE_PACKAGE_COMPLETE",
+  "html_sha256": "c65f2473a7511e5044fa667fc5abfe464d5a44534126511399c98181bfa42596",
+  "html_bytes": 70857925,
+  "sources": {
+    "dist/index.html": "881213cf3a38e555c8babe9d887168624b7a7bd21a5960a160deac11a8522256",
+    "dist/style.css": "3f02079ef7d428d7122b4a9322f711b745d0d690ba32516501729811838ad48d",
+    "dist/app.js": "3a7c8392e9fe5ac5ebfe03958f740ade209f1c0cd242a7a627268fcb84105c82",
+    "dist/data.js": "6d9ad8345f1e4ce27fc78c8da19a1383d7428a19e40c05456738da2799408585"
+  },
+  "range_options": [
+    1,
+    2,
+    3
+  ],
+  "methods": [
+    "自主视点巡检",
+    "固定环绕巡检",
+    "上方蛇形巡检"
+  ],
+  "new_joint_scene_records": 9,
+  "no_installer": true,
+  "no_network": true,
+  "no_video": true,
+  "no_external_upload": true,
+  "no_new_training": true
+}

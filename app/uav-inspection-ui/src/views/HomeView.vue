@@ -74,7 +74,7 @@ const modules = [
         path: '/pest',
         theme: 'pest',
         icon: Bug,
-        desc: ['智能监测', '自动告警'],
+        desc: ['玉米单株密植', '三种巡检对比'],
       },
       {
         name: '乔木修剪检测',

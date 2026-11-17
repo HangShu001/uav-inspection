@@ -1,0 +1,37 @@
+/* Keep the supplied desktop workbench; stack its panels on narrow devices. */
+@media (max-width: 900px) {
+  body { min-width: 0; }
+  header { height: auto; min-height: 70px; padding: 14px 16px; flex-wrap: wrap; gap: 12px; }
+  .header-actions { margin-left: auto; }
+  main { height: auto; min-height: 0; display: flex; flex-direction: column; padding: 12px; gap: 12px; }
+  .setup, .inspector { overflow: visible; padding: 18px; }
+  .setup .section-title h2 { font-size: 14px; }
+  .range-options { flex-wrap: nowrap; }
+  .range-options button, .method strong { font-size: 14px; }
+  .method small { font-size: 11px; }
+  .method { padding: 12px; }
+  .method-title { margin-top: 18px; }
+  .route-icon { display: block; }
+  .explanation, .range-note { font-size: 12px; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .metric { padding: 14px; }
+  .metric > span { font-size: 12px; }
+  .metric strong { font-size: 30px; }
+  .metric small { font-size: 10px; }
+  .scene-shell { flex: none; height: 460px; min-height: 0; }
+  .scene-heading { top: 10px; left: 10px; }
+  .view-options { top: 50px; left: 10px; right: auto; }
+  .mission { left: 10px; right: 10px; bottom: 38px; padding: 12px; }
+  .mission > div > strong { font-size: 12px; }
+  .scene-legend { bottom: 145px; }
+  .scene-legend span, .scene-hint, .inspector-note { font-size: 10px; }
+  .camera-frame { max-height: 380px; }
+  #chart { max-height: 260px; }
+  .plant-progress > div, .plant-progress strong { font-size: 12px; }
+  footer { position: sticky; bottom: 0; z-index: 10; height: auto; min-height: 78px; padding: 12px; gap: 12px; }
+  .progress { min-width: 0; }
+  .speed { flex-direction: column; gap: 3px; font-size: 10px; }
+  .speed select { padding: 5px; }
+  dialog { width: calc(100% - 24px); max-height: calc(100dvh - 32px); padding: 24px 18px; }
+  dialog h1 { font-size: 21px; }
+}

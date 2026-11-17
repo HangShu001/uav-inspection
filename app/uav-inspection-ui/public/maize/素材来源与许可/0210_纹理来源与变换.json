@@ -1,0 +1,292 @@
+{
+  "scene_id": "0210_northern_leaf_blight",
+  "plant_id": "0210",
+  "split": "val",
+  "state": "northern_leaf_blight",
+  "class_id": 3,
+  "seed": 2968683344,
+  "phase": "early",
+  "severity": "high",
+  "affected_leaf_ids": [
+    4
+  ],
+  "placements": [
+    {
+      "lesion_instance_id": 1,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_17_c005",
+      "source_group_id": "765f04f62e0800cf47b5b41932ffec3e4fed6767e4bfd2e332e2f7a6a699455c",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.2470703125,
+        0.439453125
+      ],
+      "approx_world_center": [
+        0.15989618515018378,
+        -0.048510639422926355,
+        0.6619350489003547
+      ],
+      "requested_length_m": 0.06271911659801063,
+      "requested_width_m": 0.015679779149502658,
+      "actual_pixel_xywh": [
+        191,
+        95,
+        124,
+        97
+      ],
+      "rotation_deg": 5.856776255170297,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.5654515215649154,
+        0.04731875399444471
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    },
+    {
+      "lesion_instance_id": 2,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_google_0040_c001",
+      "source_group_id": "ac1da14ab2a6c4ad8a5731af70a3a91b1b0feedc3f4e92395480e9f822a8cd13",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.22314453125,
+        0.533203125
+      ],
+      "approx_world_center": [
+        0.15137801693580247,
+        -0.05406021957195563,
+        0.6551946920664039
+      ],
+      "requested_length_m": 0.07991117339406899,
+      "requested_width_m": 0.013648740359317568,
+      "actual_pixel_xywh": [
+        150,
+        76,
+        157,
+        87
+      ],
+      "rotation_deg": -7.8117463138807075,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.5478396386959766,
+        0.05219107783110792
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    },
+    {
+      "lesion_instance_id": 3,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_google_0044_c002",
+      "source_group_id": "1192a057fedb1148cbeb8e9c09ebc1ee3be418706afb41c9cc0641897c3f4c90",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.87744140625,
+        0.3671875
+      ],
+      "approx_world_center": [
+        0.4498481706329689,
+        -0.055108269066928964,
+        0.8459553887138984
+      ],
+      "requested_length_m": 0.039066237061792276,
+      "requested_width_m": 0.00582730266434849,
+      "actual_pixel_xywh": [
+        870,
+        149,
+        57,
+        26
+      ],
+      "rotation_deg": 0.3519849572347997,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.724166442885001,
+        0.0612405330995514
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    },
+    {
+      "lesion_instance_id": 4,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_google_0044_c002",
+      "source_group_id": "1192a057fedb1148cbeb8e9c09ebc1ee3be418706afb41c9cc0641897c3f4c90",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.5927734375,
+        0.486328125
+      ],
+      "approx_world_center": [
+        0.30420157206412035,
+        -0.05066673909795459,
+        0.7822233164709955
+      ],
+      "requested_length_m": 0.09129667526725965,
+      "requested_width_m": 0.013618239150844222,
+      "actual_pixel_xywh": [
+        519,
+        92,
+        176,
+        79
+      ],
+      "rotation_deg": -7.9229424414111875,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.5497075252944666,
+        0.06396216470199691
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    },
+    {
+      "lesion_instance_id": 5,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_google_0040_c001",
+      "source_group_id": "ac1da14ab2a6c4ad8a5731af70a3a91b1b0feedc3f4e92395480e9f822a8cd13",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.162109375,
+        0.5703125
+      ],
+      "approx_world_center": [
+        0.13087712870899643,
+        -0.06026399468095707,
+        0.6306286345622014
+      ],
+      "requested_length_m": 0.0793629079856623,
+      "requested_width_m": 0.013555097231710916,
+      "actual_pixel_xywh": [
+        90,
+        71,
+        152,
+        78
+      ],
+      "rotation_deg": 7.92799409892271,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.5660736730457008,
+        0.0602770284208278
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    },
+    {
+      "lesion_instance_id": 6,
+      "leaf_id": 4,
+      "side": "shared_front_back",
+      "disease_class": "northern_leaf_blight",
+      "donor_asset_id": "corn_northern_leaf_blight_google_0040_c001",
+      "source_group_id": "ac1da14ab2a6c4ad8a5731af70a3a91b1b0feedc3f4e92395480e9f822a8cd13",
+      "donor_kind": "real_image_official_segmentation_crop",
+      "source_mask_quality": "PlantSeg_v5_official_diseased_region_mask; crop_and_rotation_only",
+      "uv_center": [
+        0.626953125,
+        0.203125
+      ],
+      "approx_world_center": [
+        0.32542538487576717,
+        -0.0366669354034441,
+        0.7900366763692255
+      ],
+      "requested_length_m": 0.09900374822271202,
+      "requested_width_m": 0.01690973110139985,
+      "actual_pixel_xywh": [
+        538,
+        166,
+        208,
+        76
+      ],
+      "rotation_deg": 2.1100747964012534,
+      "leaf_rank": 3,
+      "relative_leaf_rank": 0.3333333333333333,
+      "texture_size": [
+        1024,
+        256
+      ],
+      "local_uv_metric_m": [
+        0.4969377494144979,
+        0.06347766724972516
+      ],
+      "mask_definition": "alpha>=128 placed region; not independent pathology truth",
+      "donor_license": "CC-BY-4.0"
+    }
+  ],
+  "textures": {
+    "leaf_01_A": "leaf_01_A_color.png",
+    "leaf_02_A": "leaf_02_A_color.png",
+    "leaf_03_A": "leaf_03_A_color.png",
+    "leaf_04_A": "leaf_04_A_color.png",
+    "leaf_05_A": "leaf_05_A_color.png",
+    "leaf_06_A": "leaf_06_A_color.png",
+    "leaf_07_A": "leaf_07_A_color.png",
+    "leaf_08_A": "leaf_08_A_color.png",
+    "leaf_09_A": "leaf_09_A_color.png",
+    "leaf_10_A": "leaf_10_A_color.png"
+  },
+  "class_masks": {
+    "leaf_01_A": "leaf_01_A_class.png",
+    "leaf_02_A": "leaf_02_A_class.png",
+    "leaf_03_A": "leaf_03_A_class.png",
+    "leaf_04_A": "leaf_04_A_class.png",
+    "leaf_05_A": "leaf_05_A_class.png",
+    "leaf_06_A": "leaf_06_A_class.png",
+    "leaf_07_A": "leaf_07_A_class.png",
+    "leaf_08_A": "leaf_08_A_class.png",
+    "leaf_09_A": "leaf_09_A_class.png",
+    "leaf_10_A": "leaf_10_A_class.png"
+  },
+  "target_world": [
+    0.15989618515018378,
+    -0.048510639422926355,
+    0.6619350489003547
+  ],
+  "usd": "assets/scenes/0210_northern_leaf_blight/scene.usda",
+  "side_definition": "one original STL surface; same texture on both sides; no geometric offset",
+  "appearance_label_status": "photo-derived textures; rust weak masks; all placed labels synthetic",
+  "prior_version": "2.0",
+  "geometry_version": "official_STL_v2",
+  "texture_licenses": [
+    "CC-BY-4.0"
+  ]
+}
