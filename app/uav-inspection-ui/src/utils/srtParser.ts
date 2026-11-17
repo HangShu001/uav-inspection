@@ -14,10 +14,13 @@ export interface TelemetryFrame {
   shutter: string
   fnum: number
   focalLen: number
+  gpsAvailable?: boolean
+  altitudeAvailable?: boolean
+  speed?: number
 }
 
 function toSeconds(timestamp: string): number {
-  const match = timestamp.match(/(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/)
+  const match = timestamp.match(/(\d{2,}):(\d{2}):(\d{2})[,.](\d{3})/)
   if (!match) return 0
   const [, hh, mm, ss, ms] = match
   return Number(hh) * 3600 + Number(mm) * 60 + Number(ss) + Number(ms) / 1000
@@ -72,15 +75,22 @@ export function parseSrt(content: string): TelemetryFrame[] {
     const [startRaw = '', endRaw = ''] = timeLine.split('-->').map((part) => part.trim())
     const startTime = toSeconds(startRaw)
     const endTime = toSeconds(endRaw)
+    if (!/^\d{2,}:\d{2}:\d{2}[,.]\d{3}/.test(startRaw) || endTime < startTime) continue
     const payload = lines.slice(lines.indexOf(timeLine) + 1).join(' ')
 
     const datetimeMatch = payload.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d{3})/)
 
+    const hasLatitude = /\blatitude:\s*[-\d.]+/i.test(payload)
+    const hasLongitude = /\blongitude:\s*[-\d.]+/i.test(payload)
+    const speed = payload.match(/\b(?:horizontal_speed|speed):\s*([-\d.]+)/i)
     frames.push({
       frameCnt: extractNumber(payload, 'FrameCnt'),
       time: startTime,
       endTime,
       datetime: datetimeMatch ? datetimeMatch[1] : '',
+      gpsAvailable: hasLatitude && hasLongitude,
+      altitudeAvailable: /\brel_alt:\s*[-\d.]+/i.test(payload),
+      speed: speed ? Number(speed[1]) : undefined,
       latitude: extractNumber(payload, 'latitude'),
       longitude: extractNumber(payload, 'longitude'),
       relAlt: extractNumber(payload, 'rel_alt'),

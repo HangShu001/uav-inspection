@@ -24,7 +24,7 @@ COPY app/uav-inspection-backend/requirements.txt app/uav-inspection-backend/requ
 # 这里 AllowInsecureRepositories + 按精确包名安装（仅这 3 个运行库），公网环境可去掉该参数
 RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && apt-get update -qq -o Acquire::AllowInsecureRepositories=true \
-    && apt-get install -y -qq --no-install-recommends --allow-unauthenticated libxcb1 libgl1 libglib2.0-0 \
+    && apt-get install -y -qq --no-install-recommends --allow-unauthenticated libxcb1 libgl1 libglib2.0-0 fonts-noto-cjk ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 # Opt in to real CPU inference; trained business weights still come from /data.
 ARG UAV_INSTALL_INFERENCE=0

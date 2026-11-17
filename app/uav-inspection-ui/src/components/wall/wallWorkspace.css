@@ -1,0 +1,82 @@
+.wall-shell {
+  --wall-ink: #192638;
+  --wall-muted: #56677b;
+  --wall-line: #dce4ed;
+  --wall-accent: #087669;
+  --wall-accent-dark: #065d54;
+  min-height: 100vh;
+  background: #edf2f7;
+  color: var(--wall-ink);
+}
+.wall-shell .wall-header { background: #fff; border-bottom: 1px solid var(--wall-line); }
+.wall-header-inner, .wall-main {
+  max-width: 1480px; margin-inline: auto; padding-inline: clamp(1rem, 3vw, 2.5rem);
+}
+.wall-header-inner {
+  display: flex; align-items: center; gap: clamp(1rem, 4vw, 3.5rem); min-height: 64px;
+}
+.wall-brand { display: inline-flex; gap: .65rem; align-items: center; font-weight: 700; white-space: nowrap; }
+.wall-brand-icon {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px;
+  color: #b6f4e1; background: #142f43;
+}
+.wall-nav { display: flex; align-items: stretch; align-self: stretch; gap: .7rem; }
+.wall-nav a {
+  display: flex; align-items: center; gap: .45rem; padding-inline: .8rem;
+  color: var(--wall-muted); font-size: .875rem; border-bottom: 2px solid transparent;
+}
+.wall-nav a[aria-current="page"] { color: var(--wall-accent-dark); border-color: var(--wall-accent); font-weight: 700; }
+.wall-nav a:hover, .wall-home:hover { color: var(--wall-accent-dark); }
+.wall-home { margin-left: auto; display: flex; align-items: center; gap: .4rem; font-size: .8125rem; color: var(--wall-muted); }
+.wall-main { padding-block: 1.5rem 2.5rem; }
+.wall-hero {
+  position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: flex-end; justify-content: space-between;
+  flex-wrap: wrap; gap: 1.25rem; padding: clamp(1.2rem, 3vw, 2.15rem); border-radius: 15px;
+  color: #f7fbff; background: linear-gradient(115deg,#142538 22%,#1d3f54 76%,#205656);
+}
+.wall-hero::before {
+  position: absolute; z-index: -1; inset: 0 0 0 35%; content: ""; pointer-events: none;
+  background-image: linear-gradient(#b7f6e016 1px, transparent 1px), linear-gradient(90deg,#b7f6e016 1px, transparent 1px);
+  background-size: 34px 34px; mask-image: linear-gradient(90deg,transparent,#000 80%);
+}
+.wall-hero h1 { font-size: clamp(1.65rem, 3vw, 2.28rem); font-weight: 700; line-height: 1.22; }
+.wall-hero p { margin-top: .45rem; color: #d1e4ee; font-size: .875rem; }
+.wall-panel {
+  background: #fff; border: 1px solid var(--wall-line); border-radius: 12px;
+  box-shadow: 0 1px 3px #1f354a08;
+}
+.wall-panel-title { font-size: 1rem; font-weight: 700; }
+.wall-control {
+  min-height: 42px; width: 100%; border: 1px solid #c9d5e1; border-radius: 7px;
+  color: var(--wall-ink); background: #fff; padding: .45rem .65rem;
+}
+.wall-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  min-height: 42px; padding: .45rem .8rem; border: 1px solid #ccd7e2; border-radius: 7px;
+  background: #fff; color: var(--wall-ink); font-size: .875rem; font-weight: 600;
+}
+.wall-button:hover { border-color: #7f9aab; background: #f5f8fb; }
+.wall-button--primary { border-color: var(--wall-accent); background: var(--wall-accent); color: white; }
+.wall-button--primary:hover { border-color: var(--wall-accent-dark); background: var(--wall-accent-dark); }
+.wall-button--hero { color: #eef8ff; background: #ffffff0e; border-color: #a6c5d16b; }
+.wall-button--hero:hover, .wall-button--hero[aria-expanded="true"] { background: #ffffff26; border-color: #d5f2f5; }
+.wall-button--mint { color: #0a3736; background: #adedd8; border-color: #adedd8; }
+.wall-button--mint:hover { background: #d5ffef; border-color: #d5ffef; }
+.wall-shell :focus-visible { outline: 2px solid #168477; outline-offset: 3px; }
+.wall-hero :focus-visible, .wall-shell .wall-hero :focus-visible { outline-color: #b6f4e1; }
+.wall-shell button:disabled { opacity: .52; cursor: not-allowed; }
+.wall-status {
+  display: inline-flex; align-items: center; gap: .35rem; width: fit-content;
+  padding: .24rem .5rem; border-radius: 6px; font-size: .75rem; font-weight: 600;
+  color: #46596c; background: #eaf0f6;
+}
+.wall-status[data-tone="amber"] { color: #7f480f; background: #fff1d8; }
+.wall-status[data-tone="blue"] { color: #275885; background: #e7f1ff; }
+.wall-status[data-tone="green"] { color: #13684e; background: #e2f4e9; }
+.wall-status[data-tone="red"] { color: #9a3d37; background: #fdece8; }
+@media (max-width: 680px) {
+  .wall-header-inner { flex-wrap: wrap; gap: 0; padding-top: .6rem; }
+  .wall-nav { order: 3; width: 100%; min-height: 44px; margin-top: .35rem; }
+  .wall-nav a { padding-inline: .4rem; }
+  .wall-main { padding-block-start: .9rem; }
+}

@@ -103,6 +103,26 @@ class WallDetector:
                 self.model_error = str(exc)
         return self._detect_with_rules(image_bgr, conf_threshold, iou_threshold)
 
+    def video_predictor(self, path: Path):
+        model = load_yolo_model(path)
+        device = inference_device()
+
+        def predict(frame, confidence, iou):
+            results = model(frame, conf=confidence, iou=iou, imgsz=MODEL_IMGSZ, verbose=False, device=device)
+            detections = []
+            for result in results:
+                if result.boxes is None:
+                    continue
+                names = result.names or {}
+                for box in result.boxes:
+                    class_id = self._canonical_class_id(int(box.cls.item()), names)
+                    if class_id != TARGET_CLASS_ID:
+                        continue
+                    detections.append(self._make_detection(class_id, box.xyxy[0].tolist(), float(box.conf.item())))
+            return detections
+
+        return predict
+
     def _detect_with_model(
         self,
         image_bgr: np.ndarray,

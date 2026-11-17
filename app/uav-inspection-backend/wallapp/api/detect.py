@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import re
 import shutil
 import uuid
@@ -9,11 +10,13 @@ from datetime import datetime
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
+from authapp.api import require_account
+from wallapp.workflow import admin
 from wallapp.detector import wall_detector
 from wallapp.report import build_wall_assessment, generate_wall_report_pdf
 from deployment_paths import backend_path
@@ -329,8 +332,15 @@ async def wall_upload_task(
 
 
 @router.post('/tasks/import-path')
-async def wall_import_task_from_path(payload: WallImportPathRequest) -> dict[str, object]:
+async def wall_import_task_from_path(payload: WallImportPathRequest, account=Depends(require_account)) -> dict[str, object]:
+    allowed_root = os.getenv('UAV_WALL_IMPORT_DIR')
+    if not admin(account['username']) or not allowed_root:
+        raise HTTPException(403, '请通过上传入口添加视频和字幕')
+    root = Path(allowed_root).expanduser().resolve()
     source_path = Path(payload.video_path).expanduser().resolve()
+    subtitle_path = Path(payload.subtitle_path).expanduser().resolve()
+    if not source_path.is_relative_to(root) or not subtitle_path.is_relative_to(root):
+        raise HTTPException(403, '文件应位于已配置的导入目录')
     if not source_path.exists() or not source_path.is_file():
         raise HTTPException(status_code=404, detail=f'视频文件不存在: {source_path}')
     if source_path.suffix.lower() not in SUPPORTED_VIDEO_SUFFIXES:
@@ -589,7 +599,7 @@ async def wall_info() -> dict[str, object]:
 @router.post('/detect')
 async def wall_detect(payload: WallDetectRequest) -> JSONResponse:
     try:
-        result = wall_detector.detect_base64(payload.image, conf_threshold=payload.conf, iou_threshold=payload.iou)
+        result = await run_in_threadpool(wall_detector.detect_base64, payload.image, payload.conf, payload.iou)
         return JSONResponse({'code': 200, 'message': 'success', 'data': result})
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
