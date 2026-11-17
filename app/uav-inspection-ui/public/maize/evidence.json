@@ -1,0 +1,391 @@
+{
+  "status": "NINE_NATIVE_SCENE_INSPECTIONS",
+  "scenes": [
+    {
+      "plant_count": 1,
+      "surface_population": 120000,
+      "reference_sha256": {
+        "assets/scenes/0210_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_02_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_03_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_04_A_class.png": "880ba2cd98086158dd34a15f0bbe02eecd0bb4a140f61368a60a9acf82cbdb11",
+        "assets/scenes/0210_northern_leaf_blight/leaf_05_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_10_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e"
+      },
+      "methods": {
+        "shared": {
+          "frames": 24,
+          "coverage": 0.9184166666666667,
+          "metrics": {
+            "recall": 0.909579230080573,
+            "false_fraction": 0.03787878787878788,
+            "precision": 0.9621212121212122
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.9184166666666667,
+              "recall": 0.909579230080573,
+              "false_fraction": 0.03787878787878788,
+              "precision": 0.9621212121212122
+            }
+          ],
+          "flight_m": 15.437585020675359,
+          "minimum_clearance_m": 0.033954668045043934,
+          "model_sha256": "3875471ec56a2507ccca2240f4756bb8b7ab271d7b149872e75d690d90df7615"
+        },
+        "fixed": {
+          "frames": 24,
+          "coverage": 0.8511666666666666,
+          "metrics": {
+            "recall": 0.8352730528200537,
+            "false_fraction": 0.21530698065601345,
+            "precision": 0.7846930193439865
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.8511666666666666,
+              "recall": 0.8352730528200537,
+              "false_fraction": 0.21530698065601345,
+              "precision": 0.7846930193439865
+            }
+          ],
+          "flight_m": 11.610062803738685,
+          "minimum_clearance_m": 0.0813863456249237,
+          "model_sha256": null
+        },
+        "snake": {
+          "frames": 24,
+          "coverage": 0.243,
+          "metrics": {
+            "recall": 0.3231871083258729,
+            "false_fraction": 0.8684881602914389,
+            "precision": 0.131511839708561
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.243,
+              "recall": 0.3231871083258729,
+              "false_fraction": 0.8684881602914389,
+              "precision": 0.131511839708561
+            }
+          ],
+          "flight_m": 2.524334856271744,
+          "minimum_clearance_m": 0.4006585359573364,
+          "model_sha256": null
+        }
+      },
+      "same_initial_frame_checks": {
+        "shared": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.0
+        },
+        "fixed": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.05503824869791667
+        },
+        "snake": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.05376485188802083
+        }
+      }
+    },
+    {
+      "plant_count": 2,
+      "surface_population": 240000,
+      "reference_sha256": {
+        "assets/scenes/0210_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_02_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_03_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_04_A_class.png": "880ba2cd98086158dd34a15f0bbe02eecd0bb4a140f61368a60a9acf82cbdb11",
+        "assets/scenes/0210_northern_leaf_blight/leaf_05_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_10_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_02_A_class.png": "121524b2e31c1bdd3106d1616f4925fd2545bd6d12998f12f418e35ee6c7aedd",
+        "assets/scenes/0177_northern_leaf_blight/leaf_03_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_04_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_05_A_class.png": "0e44d405276b22e67c261c4bf6612c98c8db8b41cb8e0ee565fbb90cd9d951b4",
+        "assets/scenes/0177_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e"
+      },
+      "methods": {
+        "shared": {
+          "frames": 24,
+          "coverage": 0.7346666666666667,
+          "metrics": {
+            "recall": 0.914969450101833,
+            "false_fraction": 0.09516616314199396,
+            "precision": 0.904833836858006
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.7825796603701584,
+              "recall": 0.9112487100103199,
+              "false_fraction": 0.05053763440860215,
+              "precision": 0.9494623655913978
+            },
+            {
+              "id": "0177",
+              "coverage": 0.69751442521083,
+              "recall": 0.9185929648241206,
+              "false_fraction": 0.13446969696969696,
+              "precision": 0.865530303030303
+            }
+          ],
+          "flight_m": 20.024211177395728,
+          "minimum_clearance_m": 0.031799691915512074,
+          "model_sha256": "3875471ec56a2507ccca2240f4756bb8b7ab271d7b149872e75d690d90df7615"
+        },
+        "fixed": {
+          "frames": 24,
+          "coverage": 0.3383333333333333,
+          "metrics": {
+            "recall": 0.8391038696537678,
+            "false_fraction": 0.300509337860781,
+            "precision": 0.6994906621392191
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.42262926922343064,
+              "recall": 0.7863777089783281,
+              "false_fraction": 0.263768115942029,
+              "precision": 0.736231884057971
+            },
+            {
+              "id": "0177",
+              "coverage": 0.2729693741677763,
+              "recall": 0.8904522613065327,
+              "false_fraction": 0.32929598788796366,
+              "precision": 0.6707040121120363
+            }
+          ],
+          "flight_m": 16.459670093265004,
+          "minimum_clearance_m": 0.1650377094745636,
+          "model_sha256": null
+        },
+        "snake": {
+          "frames": 24,
+          "coverage": 0.026958333333333334,
+          "metrics": {
+            "recall": 0.6558044806517311,
+            "false_fraction": 0.5753379492251895,
+            "precision": 0.4246620507748104
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.0,
+              "recall": 0.5118679050567595,
+              "false_fraction": 0.6901936289818863,
+              "precision": 0.3098063710181137
+            },
+            {
+              "id": "0177",
+              "coverage": 0.047862109779553186,
+              "recall": 0.7959798994974875,
+              "false_fraction": 0.44692737430167595,
+              "precision": 0.553072625698324
+            }
+          ],
+          "flight_m": 4.454661794900894,
+          "minimum_clearance_m": 0.4478859782218933,
+          "model_sha256": null
+        }
+      },
+      "same_initial_frame_checks": {
+        "shared": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.0
+        },
+        "fixed": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.015888264973958333
+        },
+        "snake": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.015926310221354167
+        }
+      }
+    },
+    {
+      "plant_count": 3,
+      "surface_population": 360000,
+      "reference_sha256": {
+        "assets/scenes/0210_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_02_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_03_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_04_A_class.png": "880ba2cd98086158dd34a15f0bbe02eecd0bb4a140f61368a60a9acf82cbdb11",
+        "assets/scenes/0210_northern_leaf_blight/leaf_05_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0210_northern_leaf_blight/leaf_10_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_02_A_class.png": "121524b2e31c1bdd3106d1616f4925fd2545bd6d12998f12f418e35ee6c7aedd",
+        "assets/scenes/0177_northern_leaf_blight/leaf_03_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_04_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_05_A_class.png": "0e44d405276b22e67c261c4bf6612c98c8db8b41cb8e0ee565fbb90cd9d951b4",
+        "assets/scenes/0177_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0177_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_01_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_02_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_03_A_class.png": "3dfd59e327d95836537b24c0164729e73af6d1dd280fb9078147ca8dee0f1109",
+        "assets/scenes/0445_northern_leaf_blight/leaf_04_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_05_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_06_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_07_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_08_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_09_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_10_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_11_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e",
+        "assets/scenes/0445_northern_leaf_blight/leaf_12_A_class.png": "bdd84a6af33b786b301f1540de9f67fd7bbefd8cee826dfdcd538547cd29e12e"
+      },
+      "methods": {
+        "shared": {
+          "frames": 24,
+          "coverage": 0.5773333333333334,
+          "metrics": {
+            "recall": 0.886943836615609,
+            "false_fraction": 0.09388971684053651,
+            "precision": 0.9061102831594635
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.5998006202924235,
+              "recall": 0.8692129629629629,
+              "false_fraction": 0.0773955773955774,
+              "precision": 0.9226044226044227
+            },
+            {
+              "id": "0177",
+              "coverage": 0.5475379110581019,
+              "recall": 0.8679950186799502,
+              "false_fraction": 0.08650065530799476,
+              "precision": 0.9134993446920052
+            },
+            {
+              "id": "0445",
+              "coverage": 0.5869764999343574,
+              "recall": 0.9153488372093024,
+              "false_fraction": 0.1111111111111111,
+              "precision": 0.8888888888888888
+            }
+          ],
+          "flight_m": 18.876359795329183,
+          "minimum_clearance_m": 0.03175238072872161,
+          "model_sha256": "3875471ec56a2507ccca2240f4756bb8b7ab271d7b149872e75d690d90df7615"
+        },
+        "fixed": {
+          "frames": 24,
+          "coverage": 0.28530555555555553,
+          "metrics": {
+            "recall": 0.8355215171407732,
+            "false_fraction": 0.29572702121118966,
+            "precision": 0.7042729787888103
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.33207797961896324,
+              "recall": 0.7708333333333334,
+              "false_fraction": 0.22014051522248243,
+              "precision": 0.7798594847775175
+            },
+            {
+              "id": "0177",
+              "coverage": 0.2598398364286931,
+              "recall": 0.8841843088418431,
+              "false_fraction": 0.32573599240265905,
+              "precision": 0.674264007597341
+            },
+            {
+              "id": "0445",
+              "coverage": 0.27720887488512536,
+              "recall": 0.8511627906976744,
+              "false_fraction": 0.3202080237741456,
+              "precision": 0.6797919762258544
+            }
+          ],
+          "flight_m": 17.78697475759761,
+          "minimum_clearance_m": 0.20452215075492858,
+          "model_sha256": null
+        },
+        "snake": {
+          "frames": 24,
+          "coverage": 0.03938888888888889,
+          "metrics": {
+            "recall": 0.725018234865062,
+            "false_fraction": 0.5751228895063047,
+            "precision": 0.42487711049369525
+          },
+          "plants": [
+            {
+              "id": "0210",
+              "coverage": 0.0,
+              "recall": 0.49189814814814814,
+              "false_fraction": 0.6624305003971406,
+              "precision": 0.3375694996028594
+            },
+            {
+              "id": "0177",
+              "coverage": 0.03186232748338729,
+              "recall": 0.8169364881693649,
+              "false_fraction": 0.5658504301786896,
+              "precision": 0.43414956982131037
+            },
+            {
+              "id": "0445",
+              "coverage": 0.06853091768412761,
+              "recall": 0.8437209302325581,
+              "false_fraction": 0.5248821372446307,
+              "precision": 0.4751178627553693
+            }
+          ],
+          "flight_m": 4.794079967737198,
+          "minimum_clearance_m": 0.4105755567550659,
+          "model_sha256": null
+        }
+      },
+      "same_initial_frame_checks": {
+        "shared": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.0
+        },
+        "fixed": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.046935017903645834
+        },
+        "snake": {
+          "depth_bitwise_identical": true,
+          "rgb_mean_absolute_difference": 0.0453509521484375
+        }
+      }
+    }
+  ],
+  "source_protocol_sha256": "64b75875b6ddc8a1ad5ff0590478f0087c401b49e3cc51f9efe2d528a66189e7",
+  "native_joint_plant_capture": true,
+  "old_single_plant_results_reused": false,
+  "no_new_training": true,
+  "paper_experiments_stopped": true,
+  "not_independent_test": true,
+  "online_publishing": false,
+  "video_requested": false
+}

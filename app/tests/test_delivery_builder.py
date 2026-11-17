@@ -47,6 +47,10 @@ class DeliveryBuilderTests(unittest.TestCase):
             "uav-inspection-ui/tsconfig.app.json", "uav-inspection-ui/src/App.vue",
             "uav-inspection-ui/src/assets/icon.svg", "uav-inspection-ui/public/favicon.svg",
             "uav-inspection-ui/tests/webroot.test.mjs",
+            "uav-inspection-ui/public/maize/index.html",
+            "uav-inspection-ui/public/maize/platform-bridge.js",
+            "uav-inspection-ui/public/maize/素材来源与许可/数据许可.md",
+            "uav-inspection-ui/public/maize/evidence.json",
         ]
         data_files = [
             "uav-inspection-backend/heatmapdata/videos/video.mp4",
