@@ -92,7 +92,7 @@ export const pruningApi = {
       url: '/pruning/tasks/upload',
       method: 'POST',
       data: form,
-      timeout: 120000,
+      timeout: 660000,
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   importTaskFromPath: (payload: { task_name: string; video_path: string }) =>

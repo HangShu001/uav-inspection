@@ -74,7 +74,7 @@ let telemetryAnimationFrame: number | null = null
 
 const canPlay = computed(() => Boolean(currentVideoUrl.value))
 const subtitleCount = computed(() => srtFrames.value.length)
-const uploadReady = computed(() => Boolean(uploadVideoFile.value && uploadSrtFile.value))
+const uploadReady = computed(() => Boolean(uploadVideoFile.value))
 const currentTask = computed(() => persistedTasks.value.find((task) => task.videoUrl === currentVideoUrl.value) || null)
 function setMessage(value: string, tone: NoticeTone = 'info') {
   message.value = value
@@ -127,8 +127,8 @@ async function loadPersistedTasks() {
     const result = await telecomApi.getTasks()
     const tasks: PersistedTask[] = []
     for (const item of result.data.tasks) {
-      const srtResponse = await fetch(item.srt_url)
-      const srtText = srtResponse.ok ? await srtResponse.text() : ''
+      const srtResponse = item.srt_url ? await fetch(item.srt_url) : null
+      const srtText = srtResponse?.ok ? await srtResponse.text() : ''
       tasks.push(mapTask(item, srtText))
     }
     persistedTasks.value = tasks
@@ -353,15 +353,15 @@ function onSrtFileSelect(event: Event) {
 }
 
 async function confirmUploadTask() {
-  if (!uploadVideoFile.value || !uploadSrtFile.value) {
-    setMessage('请同时选择视频文件和字幕文件。', 'error')
+  if (!uploadVideoFile.value) {
+    setMessage('请选择视频；字幕可选，用于显示定位与飞行数据。', 'error')
     return
   }
   if (!isSupportedVideoFile(uploadVideoFile.value)) {
     setMessage(`不支持的视频格式，请上传 ${supportedVideoFormatText} 文件。`, 'error')
     return
   }
-  if (!isSupportedSubtitleFile(uploadSrtFile.value)) {
+  if (uploadSrtFile.value && !isSupportedSubtitleFile(uploadSrtFile.value)) {
     setMessage(`不支持的字幕格式，请上传 ${supportedSubtitleFormatText} 文件。`, 'error')
     return
   }
@@ -369,7 +369,7 @@ async function confirmUploadTask() {
   const form = new FormData()
   form.append('task_name', uploadVideoFile.value.name)
   form.append('video', uploadVideoFile.value)
-  form.append('srt', uploadSrtFile.value)
+  if (uploadSrtFile.value) form.append('srt', uploadSrtFile.value)
 
   uploadingTask.value = true
   setMessage('任务上传中，请稍候。', 'info')
@@ -635,8 +635,8 @@ async function detectCurrentFrame() {
     detections.value = result.data.detections
     currentStats.value = result.data.stats
     drawDetections(width, height)
-  } catch {
-    setMessage('检测失败，请确认后端模型已经正常加载。', 'error')
+  } catch (failure) {
+    setMessage(extractApiErrorMessage(failure, '检测失败，请检查模型与后端连接。'), 'error')
   } finally {
     detecting.value = false
   }
@@ -865,7 +865,7 @@ onUnmounted(() => {
             </label>
 
             <label class="block rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              <div class="mb-2 font-medium text-slate-900">选择字幕文件</div>
+              <div class="mb-2 font-medium text-slate-900">选择字幕文件（可选）</div>
               <input type="file" accept=".srt,.txt,.vtt" @change="onSrtFileSelect" />
               <div class="mt-2 text-xs text-slate-500">{{ uploadSrtFile?.name || '尚未选择字幕' }}</div>
             </label>

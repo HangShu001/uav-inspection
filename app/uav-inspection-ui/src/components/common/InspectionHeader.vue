@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+const route = useRoute()
+const modelCategory = computed(() => ({ '/power': 'power-model', '/telecom': 'telecom-model',
+  '/pruning': 'pruning-model', '/rose-yield': 'rose-model', '/heatmap-flow': 'heatmap-model' } as Record<string, string>)[route.path])
 withDefaults(defineProps<{
   title: string
   taskName?: string
@@ -31,6 +36,7 @@ withDefaults(defineProps<{
     </div>
 
     <div class="inspection-header__actions">
+      <RouterLink v-if="modelCategory" :to="{ path: '/assets', query: { category: modelCategory } }" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">素材与权重</RouterLink>
       <slot name="actions" />
     </div>
   </header>

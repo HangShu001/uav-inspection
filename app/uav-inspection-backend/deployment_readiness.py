@@ -29,8 +29,7 @@ def _has_video(root: Path, recursive: bool = False) -> bool:
 
 
 def _paired_task(root: Path) -> bool:
-    return any(folder.is_dir() and _has_video(folder) and
-               any(p.is_file() and p.suffix.lower() in {'.srt', '.txt', '.vtt'} for p in folder.iterdir())
+    return any(folder.is_dir() and _has_video(folder)
                for folder in root.glob('*'))
 
 
@@ -51,21 +50,33 @@ def module_status() -> dict[str, dict]:
         ('telecom', '通信基站巡检', '/telecom', _paired_task(backend_path('telecom-tasks')), 'telecom-tasks'),
         ('power', '杆路线路巡检', '/power', _has_video(backend_path('powerdata', 'media')), 'power-media'),
         ('pruning', '乔木修剪检测', '/pruning', _has_video(backend_path('treedata', 'media')), 'pruning-media'),
-        ('wall', '建筑外墙巡检', '/wall', _has_video(backend_path('walldata', 'media')), 'wall-media'),
         ('rose', '玫瑰产量估计', '/rose-yield', _paired_task(backend_path('rose-tasks')), 'rose-tasks'),
         ('heatmap', '热力客流监测', '/heatmap-flow', _has_video(backend_path('heatmapdata', 'videos')), 'heatmap-videos'),
     ):
         missing = []
         if not media_ready:
-            missing.append(requirement('巡检视频与对应字幕' if key in {'telecom', 'rose'} else '巡检视频', media_category))
+            missing.append(requirement('巡检视频', media_category))
         if not MODEL_PATHS[key]().is_file():
             missing.append(requirement(f'训练模型 {MODEL_PATHS[key]().name}', f'{key}-model'))
         if not dependencies:
             missing.append(requirement('服务器 AI 推理依赖（构建时启用 UAV_INSTALL_INFERENCE=1）'))
-        note = '文件齐备后，请在模块中检查模型能否加载。'
+        note = '视频和模型齐备后，请试运行模型；字幕可选，仅定位和飞行数据需要对应字幕。'
         if key == 'wall':
             note = '缺少 AI 模型时仍可使用规则检测；规则结果不等同于 AI 识别。'
         entry(key, title, route, 'inference', missing, note)
+
+    from wallapp import analysis
+    wall_missing = []
+    # Task membership is account-scoped in the workbench; this overview only checks files.
+    if not _has_video(analysis.ROOT / 'media', recursive=True):
+        wall_missing.append(requirement('在外墙工作台上传巡检任务视频', 'wall-media'))
+    has_onnx = any(path.with_suffix('.json').is_file() for path in analysis.MODEL_DIR.glob('*.onnx'))
+    if not has_onnx and not MODEL_PATHS['wall']().is_file():
+        wall_missing.append(requirement('外墙 ONNX 模型或可信 PT 权重', 'wall-model'))
+    if not has_onnx and not dependencies:
+        wall_missing.append(requirement('PT 权重需要服务器 AI 推理依赖，或改用 ONNX'))
+    entry('wall', '建筑外墙巡检', '/wall', 'inference', wall_missing,
+          '新版工作台使用账号绑定任务；ONNX 可直接在 CPU 运行，PT 需要额外推理依赖。')
 
     roof_tasks = backend_path('roofdata', 'media')
     roof_ready = any(folder.is_dir() and _has_video(folder) and all(

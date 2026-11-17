@@ -8,7 +8,7 @@ from typing import Any
 import cv2
 import numpy as np
 from deployment_paths import backend_path
-from optional_inference import inference_device, load_yolo_model
+from optional_inference import class_mapping, serialized_inference, model_signature, inference_device, load_yolo_model
 
 CLASS_NAMES = {0: "rose", 1: "picked", 2: "bud"}
 CLASS_CN = {0: "盛开花", 1: "已采摘", 2: "花苞"}
@@ -55,11 +55,14 @@ class RoseDetector:
         self._model_path: Path | None = None
         self._initialized = True
 
+    @serialized_inference
     def load_model(self) -> None:
-        if self.model is not None:
-            return
-
         model_path = _resolve_model_path()
+        signature = model_signature(model_path)
+        if self.model is not None and getattr(self, '_loaded_signature', None) == signature:
+            return
+        self.model = None
+        self._loaded_signature = signature
         self.model = load_yolo_model(model_path)
         self.device = inference_device()
         self._model_path = model_path
@@ -68,6 +71,7 @@ class RoseDetector:
         except Exception:
             pass
 
+    @serialized_inference
     def detect(
         self,
         image_bgr: np.ndarray,
@@ -77,6 +81,7 @@ class RoseDetector:
         self.load_model()
         assert self.model is not None
 
+        mapping = class_mapping(self.model, CLASS_NAMES, CLASS_CN)
         conf = self.conf_threshold if conf_threshold is None else conf_threshold
         iou = self.iou_threshold if iou_threshold is None else iou_threshold
         results = self.model(image_bgr, conf=conf, iou=iou, verbose=False, device=self.device)
@@ -89,7 +94,7 @@ class RoseDetector:
             if boxes is None:
                 continue
             for index in range(len(boxes)):
-                cls_id = int(boxes.cls[index].item())
+                cls_id = mapping.get(int(boxes.cls[index].item()), -1)
                 cls_name = CLASS_NAMES.get(cls_id)
                 if cls_name is None:
                     continue

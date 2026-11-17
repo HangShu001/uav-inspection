@@ -17,6 +17,7 @@ import re
 import shutil
 import time
 import uuid
+import asyncio
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -25,8 +26,12 @@ from fastapi.responses import JSONResponse
 from authapp.api import require_account
 from wallapp.workflow import admin as wall_admin
 from deployment_paths import DATA_ROOT, backend_path
+from browser_video import store_video
+
+from assetsapp.readiness import router as readiness_router
 
 router = APIRouter()
+router.include_router(readiness_router)
 
 CHUNK_SIZE = int(os.environ.get('UAV_CHUNK_SIZE', 8 * 1024 * 1024))
 
@@ -56,6 +61,7 @@ CATEGORIES: dict[str, Path] = {
 }
 
 MODEL_FILENAMES = {
+    'heatmap-model': 'renliu.pt',
     'telecom-model': 'station2-best.pt',
     'power-model': 'wire-pole-seg.pt',
     'wall-model': 'wall-damage-best.pt',
@@ -63,11 +69,33 @@ MODEL_FILENAMES = {
     'rose-model': 'rose-detect-best.pt',
 }
 
+VIDEO_CATEGORIES = {'heatmap-videos', 'telecom-media', 'power-media', 'wall-media',
+                    'roof-media', 'pruning-media', 'telecom-tasks', 'rose-tasks'}
+VIDEO_SUFFIXES = {'.mp4', '.mov', '.avi', '.mkv', '.webm'}
+
+
+def _video_target(category, name):
+    return category in VIDEO_CATEGORIES and Path(name).suffix.lower() in VIDEO_SUFFIXES
+
+
+def _target_name(category, name):
+    return str(Path(name).with_suffix('.mp4')) if _video_target(category, name) else name
+
+
+def _publish(temporary, destination, category, name):
+    if _video_target(category, name):
+        with temporary.open('rb') as source:
+            store_video(source, destination, name)
+    else:
+        temporary.replace(destination)
+
 CATEGORY_HINTS = {
     **{key: f'文件名必须为 {name}，子目录留空。上传可信的训练权重后重新检查模块。' for key, name in MODEL_FILENAMES.items()},
     'heatmap-model': '上传 renliu.pt，子目录留空；还需在服务器安装 AI 推理依赖。',
-    'telecom-tasks': '子目录填写任务编号；在同一任务目录上传视频与 SRT 字幕。也可在通信基站页面创建任务。',
-    'rose-tasks': '子目录填写任务编号；在同一任务目录上传视频与 SRT 字幕。也可在玫瑰产量页面创建任务。',
+    'wall-media': '此目录供旧回放工具使用。新版外墙工作台请使用上方“上传外墙任务”，视频会绑定当前账号并生成任务。',
+    'wall-model': '可信 PT 权重需命名为 wall-damage-best.pt，并安装推理依赖；新版工作台也支持无需 PyTorch 的单类别 ONNX 模型。外墙模型上传需要 UAV_WALL_ADMINS 授权。',
+    'telecom-tasks': '子目录填写任务编号，视频使用 H.264 MP4；SRT 字幕可选，仅定位与飞行数据显示需要字幕。模块内上传任务支持视频转码。',
+    'rose-tasks': '子目录填写任务编号，视频使用 H.264 MP4；SRT 字幕可选，仅定位与飞行数据显示需要字幕。模块内上传任务支持视频转码。',
     'roof-media': '子目录填写任务编号；屋顶模块展示离线结果，单独上传视频不会自动生成缺陷。',
     'roof-reports': '子目录与屋顶视频的任务编号一致；上传 defects.json、telemetry.json 和可选 report.html。',
     'pest-data': '兼容旧回放接口的数据目录：视频放 media，轨迹 mock_track.json 放根目录，旧报告放 reports。新版玉米巡检工作台使用内置三维场景，无需配置这些回放文件。',
@@ -118,6 +146,7 @@ async def list_categories():
                 'key': key,
                 'label': label,
                 'target': str(CATEGORIES[key].relative_to(DATA_ROOT)),
+                'expected_filename': MODEL_FILENAMES.get(key, 'renliu.pt' if key == 'heatmap-model' else ''),
                 'hint': CATEGORY_HINTS.get(key, ''),
             }
             for key, label in (
@@ -189,14 +218,21 @@ async def upload_assets(
     for item in files:
         name = _safe_name(item.filename)
         _validate_model_target(category, subdir, name)
-        destination = target_dir / name
+        destination = target_dir / _target_name(category, name)
         if destination.exists() and not overwrite:
             skipped.append({'name': name, 'reason': '已存在（未开启覆盖）'})
             await item.close()
             continue
-        with destination.open('wb') as buffer:
-            shutil.copyfileobj(item.file, buffer)
-        await item.close()
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(dir=target_dir, delete=False) as buffer:
+            temporary = Path(buffer.name)
+            try:
+                await asyncio.to_thread(shutil.copyfileobj, item.file, buffer)
+                buffer.close()
+                await asyncio.to_thread(_publish, temporary, destination, category, name)
+            finally:
+                temporary.unlink(missing_ok=True)
+                await item.close()
         saved.append({'name': name, 'size': destination.stat().st_size})
 
     return JSONResponse(status_code=200, content={
@@ -246,7 +282,7 @@ async def upload_init(
     name = _safe_name(filename)
     _validate_model_target(category, subdir, name)
     target_dir = base / _safe_subdir(subdir)
-    destination = target_dir / name
+    destination = target_dir / _target_name(category, name)
 
     # 秒传：同名同大小且不覆盖，直接命中
     if destination.exists() and destination.stat().st_size == size and not overwrite:
@@ -317,10 +353,21 @@ async def upload_chunk(
     if index >= total_chunks:
         raise HTTPException(status_code=422, detail=f'分片号越界（共 {total_chunks} 片）')
     part = workdir / f'{index}.part'
-    # 同分片重传（断点续传重试）幂等：直接覆盖
-    with part.open('wb') as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    expected = min(meta['chunk_size'], meta['size'] - index * meta['chunk_size'])
+    payload = await file.read(expected + 1)
     await file.close()
+    if len(payload) != expected:
+        raise HTTPException(422, detail=f'分片大小不正确，应为 {expected} 字节，请重传此片')
+    # Publish a chunk only after it is complete; interrupted writes cannot look resumable.
+    from tempfile import NamedTemporaryFile
+    with NamedTemporaryFile(dir=workdir, delete=False) as buffer:
+        temporary = Path(buffer.name)
+        try:
+            await asyncio.to_thread(buffer.write, payload)
+            buffer.close()
+            temporary.replace(part)
+        finally:
+            temporary.unlink(missing_ok=True)
     received = sorted(_part_index(p) for p in workdir.glob('*.part'))
     return {'code': 200, 'data': {'index': index, 'size': part.stat().st_size, 'received': received}}
 
@@ -336,7 +383,7 @@ async def upload_complete(request: Request, upload_id: str = Form(...)):
     base = CATEGORIES.get(meta['category'])
     target_dir = base / _safe_subdir(meta['subdir'])
     target_dir.mkdir(parents=True, exist_ok=True)
-    destination = target_dir / meta['filename']
+    destination = target_dir / _target_name(meta['category'], meta['filename'])
 
     size = meta['size']
     chunk_size = meta['chunk_size']
@@ -355,12 +402,19 @@ async def upload_complete(request: Request, upload_id: str = Form(...)):
         shutil.rmtree(workdir, ignore_errors=True)
         return {'code': 200, 'data': {'path': str(destination), 'size': destination.stat().st_size,
                                       'deduplicated': '已存在同名文件（未开启覆盖），分片已清理'}}
-    tmp_target = destination.with_name(destination.name + '.uploading')
-    with tmp_target.open('wb') as out:
-        for part in parts:
-            with part.open('rb') as src:
-                shutil.copyfileobj(src, out)
-    tmp_target.replace(destination)
+    from tempfile import NamedTemporaryFile
+    with NamedTemporaryFile(dir=target_dir, delete=False) as out:
+        tmp_target = Path(out.name)
+    def merge():
+        try:
+            with tmp_target.open('wb') as out:
+                for part in parts:
+                    with part.open('rb') as src:
+                        shutil.copyfileobj(src, out)
+            _publish(tmp_target, destination, meta['category'], meta['filename'])
+        finally:
+            tmp_target.unlink(missing_ok=True)
+    await asyncio.to_thread(merge)
     shutil.rmtree(workdir, ignore_errors=True)
     return {'code': 200, 'data': {'path': str(destination), 'size': destination.stat().st_size,
                                   'chunks': total_chunks}}

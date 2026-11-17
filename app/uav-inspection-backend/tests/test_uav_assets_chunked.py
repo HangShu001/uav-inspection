@@ -177,7 +177,8 @@ class AssetsChunkedUploadTests(unittest.TestCase):
         self.chunk(upload_id, 2, b"short")  # 尾片短传 → 总量不符
         mismatch = self.complete(upload_id)
         self.assertEqual(mismatch.status_code, 409)
-        self.assertIn("总大小", mismatch.json()["detail"])
+        self.assertIn("分片不全", mismatch.json()["detail"])
+        self.assertNotIn(2, self.status(upload_id).json()['data']['received'])
 
         self.chunk(upload_id, 2, content[2 * self.chunk_size:])
         done = self.complete(upload_id)

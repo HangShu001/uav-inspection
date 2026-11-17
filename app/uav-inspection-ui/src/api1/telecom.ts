@@ -78,7 +78,7 @@ export const telecomApi = {
       url: '/telecom/tasks/upload',
       method: 'POST',
       data: form,
-      timeout: 120000,
+      timeout: 660000,
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   renameTask: (taskId: string, taskName: string) =>

@@ -5,6 +5,11 @@ import { BASE_URL } from './webroot'
 // 走 Vite proxy，生产环境由 Nginx 反代；子路径部署时带 BASE_URL 前缀
 const BASE_URL_API = `${BASE_URL}api/v1`
 
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error) && typeof error.response?.data?.detail === 'string') return error.response.data.detail
+  return fallback
+}
+
 export interface ApiResponse<T = any> {
   code: number
   message: string

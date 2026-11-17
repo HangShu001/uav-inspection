@@ -61,7 +61,7 @@ export const powerApi = {
       video_name: string
       created_at: string
       url: string
-    }>('/power/tasks/upload', form)
+    }>('/power/tasks/upload', form, { timeout: 660000 })
   },
   getInfo() {
     return request<PowerInfoResult>({ url: '/power/info', method: 'GET' })

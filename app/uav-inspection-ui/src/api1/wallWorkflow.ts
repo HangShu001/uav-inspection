@@ -64,7 +64,7 @@ export interface TaskDetail {
   can_manage: boolean
 }
 
-export interface ModelOption { id: string; name: string }
+export interface ModelOption { id: string; name: string; ready?: boolean; reason?: string }
 
 async function api<T>(path: string, method = 'GET', data?: unknown, signal?: AbortSignal) {
   const config = {
@@ -81,12 +81,15 @@ function fileForm(file: File) {
 }
 
 export const wallWorkflow = {
+  detectFrame: (task: string, model: string, image: string, sensitivity: number, signal?: AbortSignal) =>
+    api<{ boxes: number[][]; width: number; height: number; inference_ms: number }>(
+      `/tasks/${task}/detect`, 'POST', { model, image, sensitivity }, signal),
   interpret: (question: string, task_id: string | null) =>
     api<{ action: 'subtitle' | 'pending' | 'seek' | 'draft'; seconds?: number } | null>(
       '/assistant', 'POST', { question, task_id }),
   tasks: () => api<Task[]>('/tasks'),
   detail: (id: string) => api<TaskDetail>('/tasks/' + id),
-  models: () => api<{ models: ModelOption[]; can_upload: boolean }>('/models'),
+  models: () => api<{ models: ModelOption[]; can_upload: boolean; upload_hint?: string }>('/models'),
   uploadModel: (file: File) => api<ModelOption>('/models', 'POST', fileForm(file)),
   subtitle: (id: string, file: File) => api('/tasks/' + id + '/subtitle', 'PUT', fileForm(file)),
   offset: (id: string, seconds: number) => api('/tasks/' + id + '/subtitle-offset', 'PUT', { seconds }),

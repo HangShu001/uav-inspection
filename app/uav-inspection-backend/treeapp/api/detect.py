@@ -319,7 +319,7 @@ def _normalize_uploaded_video(raw_path: Path, playback_path: Path) -> tuple[bool
         raw_path.replace(playback_path)
         return False, codec
 
-    raise RuntimeError('Only MP4 videos encoded with H.264/AVC1 can be uploaded.')
+    return True, _transcode_to_browser_video(raw_path, playback_path)
 
 
 def _store_uploaded_video(raw_path: Path, playback_path: Path) -> tuple[bool, str]:
@@ -350,7 +350,7 @@ def _ensure_browser_ready_video(video_path: Path) -> tuple[bool, str]:
 
 
 @router.get('/health')
-async def pruning_health() -> dict[str, object]:
+def pruning_health() -> dict[str, object]:
     model_exists = tree_pruning_detector.is_model_available()
     inference_available = model_exists and inference_dependencies_available()
     return {
@@ -374,7 +374,7 @@ async def pruning_videos() -> dict[str, object]:
 
 
 @router.post('/tasks/upload')
-async def pruning_upload_task(
+def pruning_upload_task(
     task_name: str = Form(''),
     video: UploadFile = File(...),
 ) -> dict[str, object]:
@@ -468,7 +468,7 @@ async def pruning_update_config(payload: TreePruningConfigRequest) -> dict[str, 
 
 
 @router.get('/info')
-async def pruning_info() -> dict[str, object]:
+def pruning_info() -> dict[str, object]:
     try:
         return {'code': 200, 'message': 'success', 'data': tree_pruning_detector.get_info()}
     except FileNotFoundError as exc:
@@ -478,7 +478,7 @@ async def pruning_info() -> dict[str, object]:
 
 
 @router.post('/detect')
-async def pruning_detect(payload: TreePruningDetectRequest) -> JSONResponse:
+def pruning_detect(payload: TreePruningDetectRequest) -> JSONResponse:
     try:
         result = tree_pruning_detector.detect_base64(payload.image, conf_threshold=payload.conf, iou_threshold=payload.iou)
         return JSONResponse({'code': 200, 'message': 'success', 'data': result})

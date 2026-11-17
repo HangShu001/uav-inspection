@@ -12,6 +12,7 @@ defineProps<{ active: 'workbench' | 'archive' }>()
         <span>建筑外墙巡检</span>
       </RouterLink>
       <nav aria-label="外墙巡检" class="wall-nav">
+        <RouterLink to="/assets?category=wall-model">素材与权重</RouterLink>
         <RouterLink to="/wall" :aria-current="active === 'workbench' ? 'page' : undefined">
           <LayoutDashboard :size="17" /> 巡检工作台
         </RouterLink>

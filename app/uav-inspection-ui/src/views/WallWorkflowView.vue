@@ -25,7 +25,7 @@ const notice = ref('')
 const error = ref('')
 const busy = ref(false)
 const loading = ref(true)
-const showUpload = ref(false)
+const showUpload = ref(route.query.upload === '1')
 const showLive = ref(false)
 const name = ref('')
 const building = ref('')
@@ -42,7 +42,58 @@ const subtitleOffset = ref(0)
 const models = ref<ModelOption[]>([])
 const model = ref('')
 const canUploadModel = ref(false)
+const modelUploadHint = ref('')
+const selectedModel = computed(() => models.value.find(item => item.id === model.value))
+const realtime = ref(false)
+const preview = ref<{ boxes: number[][]; width: number; height: number; inference_ms: number } | null>(null)
+const previewError = ref('')
+const previewBusy = ref(false)
+let previewEpoch = 0
+let previewAbort: AbortController | undefined
+let previewTimer: number | undefined
+
+function clearPreview() {
+  previewEpoch++
+  previewAbort?.abort()
+  preview.value = null
+}
+async function detectPlayback() {
+  const player = video.value
+  if (!realtime.value || !manager.value || !player || player.paused || player.seeking ||
+      player.readyState < 2 || previewBusy.value || !model.value) return
+  const epoch = previewEpoch
+  const id = taskId.value
+  const controller = new AbortController()
+  previewAbort = controller
+  previewBusy.value = true
+  try {
+    const canvas = document.createElement('canvas')
+    const scale = Math.min(1, 640 / Math.max(player.videoWidth, player.videoHeight))
+    canvas.width = Math.max(1, Math.round(player.videoWidth * scale))
+    canvas.height = Math.max(1, Math.round(player.videoHeight * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('无法读取视频画面')
+    context.drawImage(player, 0, 0, canvas.width, canvas.height)
+    const image = canvas.toDataURL('image/jpeg', 0.75).split(',')[1] || ''
+    const result = await wallWorkflow.detectFrame(id, model.value, image, sensitivity.value, controller.signal)
+    if (!stopped && epoch === previewEpoch && realtime.value) {
+      preview.value = result
+      previewError.value = ''
+    }
+  } catch (failure) {
+    if (controller.signal.aborted || stopped || epoch !== previewEpoch) return
+    // Another preview client can temporarily own the CPU worker; retry on the next tick.
+    if ((failure as { response?: { status: number } }).response?.status !== 429) {
+      realtime.value = false
+      previewError.value = wallError(failure)
+    }
+  } finally {
+    previewBusy.value = false
+  }
+}
+watch(realtime, value => { clearPreview(); if (value) void detectPlayback() })
 const sensitivity = ref(0.75)
+watch([model, taskId, sensitivity], () => { clearPreview(); previewError.value = '' })
 const iou = ref(0.45)
 const mode = ref<'sample' | 'all'>('sample')
 const tab = ref<'findings' | 'orders'>('findings')
@@ -133,7 +184,8 @@ async function refreshModels() {
   const data = await wallWorkflow.models()
   models.value = data.models
   canUploadModel.value = data.can_upload
-  if (!models.value.some(item => item.id === model.value)) model.value = models.value[0]?.id || ''
+  modelUploadHint.value = data.upload_hint || ''
+  if (!models.value.some(item => item.id === model.value)) model.value = models.value.find(item => item.ready !== false)?.id || models.value[0]?.id || ''
 }
 async function act(operation: () => Promise<void>, success?: string) {
   if (busy.value) return
@@ -201,10 +253,13 @@ onMounted(async () => {
   pollTimer = window.setInterval(() => {
     if (taskId.value && !busy.value) void refresh().catch(() => {})
   }, 3000)
+  previewTimer = window.setInterval(() => { void detectPlayback() }, 500)
 })
 onUnmounted(() => {
   stopped = true
   clearInterval(pollTimer)
+  clearInterval(previewTimer)
+  clearPreview()
   uploadAbort.value?.abort()
 })
 function submitUpload() {
@@ -377,6 +432,14 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
         </div>
       </div>
       <p v-if="error" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ error }}</p>
+      <section v-if="!models.length || selectedModel?.ready === false" class="wall-panel panel space-y-2 text-sm">
+        <h2 class="font-semibold">检测模型待准备</h2>
+        <p>{{ selectedModel?.reason || '请添加外墙模型，再上传视频进行检测。ONNX 支持 CPU 推理；PT 需要服务器安装推理依赖。' }}</p>
+        <label v-if="canUploadModel" class="block">添加模型（640×640 单类别 YOLO ONNX）<input type="file" accept=".onnx" class="field" :disabled="busy" @change="uploadModel" /></label>
+        <p v-else>{{ modelUploadHint }}</p>
+        <RouterLink to="/assets?category=wall-model" class="font-semibold underline">打开素材与权重上传中心</RouterLink>
+        <button class="button ml-3" :disabled="busy" @click="act(refreshModels)">重新检查模型</button>
+      </section>
       <p v-if="notice" class="rounded-md bg-teal-50 p-3 text-sm text-teal-900" role="status">{{ notice }}</p>
       <WallLive v-if="showLive" />
       <section v-if="showUpload" class="wall-panel panel">
@@ -437,9 +500,21 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
               <div><h2 class="wall-panel-title flex items-center gap-2"><Film :size="19" /> 巡检录像</h2><p class="mt-1 text-sm text-slate-600">{{ current.task.name }}</p></div>
               <span class="flex items-center gap-1 text-sm text-slate-600"><MapPin :size="15" /> {{ current.task.building }} · {{ current.task.facade }}</span>
             </div>
+            <div class="relative">
             <video :key="current.task.id" ref="video" :src="current.task.video_url" controls playsinline preload="metadata"
               class="aspect-video w-full rounded-md bg-slate-950 object-contain"
-              @timeupdate="videoTime = video?.currentTime || 0" @seeked="videoTime = video?.currentTime || 0" @error="videoError = true" />
+              @timeupdate="videoTime = video?.currentTime || 0" @seeking="clearPreview" @seeked="videoTime = video?.currentTime || 0" @pause="clearPreview" @play="detectPlayback" @error="videoError = true; clearPreview()" />
+            <svg v-if="preview && realtime" class="pointer-events-none absolute inset-0 h-full w-full" :viewBox="`0 0 ${preview.width} ${preview.height}`" preserveAspectRatio="xMidYMid meet" aria-label="当前画面检测框">
+              <rect v-for="(box, index) in preview.boxes" :key="index" :x="box[0]" :y="box[1]" :width="(box[2] || 0) - (box[0] || 0)" :height="(box[3] || 0) - (box[1] || 0)" fill="none" stroke="#facc15" stroke-width="2" vector-effect="non-scaling-stroke" />
+            </svg>
+            </div>
+            <div v-if="manager" class="flex flex-wrap items-center gap-3 text-sm">
+              <label><input v-model="realtime" type="checkbox" :disabled="!model || selectedModel?.ready === false || analyzing" /> 边播放边检测</label>
+              <span v-if="preview">本帧 {{ preview.boxes.length }} 处疑似 · 推理 {{ preview.inference_ms }} ms</span>
+              <span v-else-if="realtime">{{ previewBusy ? '正在分析画面…' : '播放视频后逐帧检测' }}</span>
+            </div>
+            <p v-if="previewError" class="text-sm text-red-800" role="alert">{{ previewError }}</p>
+            <p v-if="realtime" class="text-xs text-slate-600">按服务器速度抽帧显示检测框；点击“开始检测”可生成完整分析记录与工单依据。</p>
             <p v-if="videoError" class="text-sm text-red-800">浏览器无法播放这个文件。请尝试使用 MP4 格式的视频。</p>
             <div v-if="manager" class="space-y-3">
               <div v-if="run" class="text-sm text-slate-700">
@@ -463,8 +538,8 @@ async function ask(text = prompt.value, useProvider = true): Promise<void> {
                   <label v-if="canUploadModel" class="sm:col-span-2">添加模型（640×640 单类别 YOLO ONNX）<input type="file" accept=".onnx" class="field" :disabled="busy" @change="uploadModel" /></label>
                 </div>
               </details>
-              <button v-if="!analyzing" class="primary" :disabled="busy || !model"
-                @click="act(async () => { await wallWorkflow.run(taskId, model, sensitivity, mode, iou); await refresh() }, '分析已开始，可继续查看视频。')">开始检测</button>
+              <button v-if="!analyzing" class="primary" :disabled="busy || !model || selectedModel?.ready === false"
+                @click="act(async () => { realtime = false; await wallWorkflow.run(taskId, model, sensitivity, mode, iou); await refresh() }, '分析已开始，可继续查看视频。')">开始检测</button>
               <p v-if="!model" class="text-sm text-slate-600">{{ canUploadModel ? "开始检测前，请在检测设置中添加模型。" : "开始检测前，请联系管理员添加模型。" }}</p>
             </div>
           </section>
