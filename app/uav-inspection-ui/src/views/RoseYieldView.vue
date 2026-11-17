@@ -232,7 +232,7 @@
                   </label>
                 </div>
                 <div>
-                  <label class="block text-xs text-slate-500 mb-1.5">SRT 字幕文件</label>
+                  <label class="block text-xs text-slate-500 mb-1.5">SRT 字幕文件（可选，定位需字幕）</label>
                   <label class="flex items-center gap-2 px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700 text-sm rounded-xl cursor-pointer hover:bg-sky-100 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     {{ newTaskSrtName || '选择 SRT 文件' }}
@@ -499,7 +499,7 @@ interface TaskRecord {
 const taskRecords = ref<TaskRecord[]>([])
 const TASK_STORAGE_KEY = 'rose-yield-tasks'
 
-const canUploadTask = computed(() => newTaskName.value.trim() && newTaskVideoFile.value && newTaskSrtFile.value)
+const canUploadTask = computed(() => newTaskName.value.trim() && newTaskVideoFile.value)
 
 function loadTaskRecords() {
   try {
@@ -540,16 +540,16 @@ async function confirmUploadTask() {
 
   const taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   const videoFile = newTaskVideoFile.value!
-  const srtFile = newTaskSrtFile.value!
+  const srtFile = newTaskSrtFile.value
   const taskName = newTaskName.value.trim()
-  const srtText = await srtFile.text()
+  const srtText = srtFile ? await srtFile.text() : ''
 
   // 上传到后端磁盘
   const form = new FormData()
   form.append('task_id', taskId)
   form.append('task_name', taskName)
   form.append('video', videoFile, videoFile.name)
-  form.append('srt', new Blob([srtText], { type: 'text/plain' }), srtFile.name || 'subtitle.srt')
+  if (srtFile) form.append('srt', new Blob([srtText], { type: 'text/plain' }), srtFile.name || 'subtitle.srt')
 
   try {
     const res = await fetch(`${API_BASE}/api/v1/rose/tasks/upload`, { method: 'POST', body: form })
@@ -562,7 +562,7 @@ async function confirmUploadTask() {
       id: taskId,
       name: taskName,
       videoName: videoFile.name,
-      srtName: srtFile.name || 'subtitle.srt',
+      srtName: srtFile?.name || '',
       videoUrl: videoUrl,
       srtText: srtText,
       createdAt: new Date().toLocaleString('zh-CN'),
@@ -1042,8 +1042,10 @@ async function runDetection(frameKeyArg?: number, mediaTime?: number) {
     })
     apiLatency.value = Math.round(performance.now() - t0)
     if (!resp.ok) {
-      console.warn('[Detect] API error', resp.status, resp.statusText)
-      try { const errBody = await resp.json(); console.warn('[Detect] error detail:', errBody) } catch {}
+      const failure = await resp.json().catch(() => null)
+      noticeMessage.value = failure?.detail || `画面检测失败（HTTP ${resp.status}）`
+      noticeTone.value = 'error'
+      if (resp.status !== 429) { inferenceReady.value = false; isDetecting.value = false }
       return
     }
 

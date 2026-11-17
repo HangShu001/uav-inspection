@@ -14,6 +14,7 @@ from datetime import date
 from functools import lru_cache
 from threading import Lock
 
+from optional_inference import inference_dependencies_available
 from authapp.api import require_account
 from uav_url_prefix import prefixed
 from wallapp import analysis, intake, workflow_report
@@ -136,11 +137,18 @@ def offset(task_id: str, payload: Offset, account=Depends(require_account)):
 def list_models(account=Depends(require_account)):
     versions = []
     if analysis.MODEL_PATH.is_file():
-        versions.append({'id': 'installed', 'name': '服务器已安装模型'})
+        versions.append({'id': 'installed', 'name': '服务器 PT 权重',
+                         'ready': inference_dependencies_available(),
+                         'reason': '' if inference_dependencies_available() else '服务器尚未安装 PT 推理依赖'})
     for metadata in sorted(analysis.MODEL_DIR.glob('*.json')):
         if metadata.with_suffix('.onnx').is_file():
-            versions.append(json.loads(metadata.read_text(encoding='utf-8')))
-    return answer({'models': versions, 'can_upload': admin(account['username'])})
+            try:
+                info = json.loads(metadata.read_text(encoding='utf-8'))
+                versions.append({'id': metadata.stem, 'name': str(info['name']), 'ready': True, 'reason': ''})
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+    return answer({'models': versions, 'can_upload': admin(account['username']),
+                   'upload_hint': '模型上传仅限 UAV_WALL_ADMINS 中配置的账号；请联系部署人员授权。'})
 
 
 @router.post('/models')
@@ -191,6 +199,8 @@ def start_run(task_id: str, payload: RunRequest, account=Depends(require_account
     path = analysis.model_path(payload.model)
     if not path.is_file():
         raise HTTPException(422, '请选择已安装的检测模型')
+    if path.suffix == '.pt' and not inference_dependencies_available():
+        raise HTTPException(503, 'PT 权重已保存，但服务器未安装 requirements-inference.txt；请先安装推理依赖或添加 ONNX 模型。')
     version = payload.model
     if version == 'installed':
         # Copy the legacy model into the versioned store so a run always uses fixed weights.
@@ -502,13 +512,25 @@ class LiveFrame(BaseModel):
 
 @router.post('/live/{device_id}/detect')
 def preview_frame(device_id: str, payload: LiveFrame, account=Depends(require_account)):
+    live.device(device_id, account['username'])
+    return detect_preview(payload)
+
+
+@router.post('/tasks/{task_id}/detect')
+def task_preview(task_id: str, payload: LiveFrame, account=Depends(require_account)):
+    with database() as conn:
+        task_for(conn, task_id, account['username'], write=True)
+    return detect_preview(payload)
+
+
+def detect_preview(payload: LiveFrame):
     import base64
     import binascii
     from io import BytesIO
     from PIL import UnidentifiedImageError
     import numpy as np
+    import time
 
-    live.device(device_id, account['username'])
     try:
         binary = base64.b64decode(payload.image, validate=True)
         with Image.open(BytesIO(binary)) as image:
@@ -522,12 +544,15 @@ def preview_frame(device_id: str, payload: LiveFrame, account=Depends(require_ac
     if not _preview_lock.acquire(blocking=False):
         raise HTTPException(429, '检测正在处理上一帧')
     try:
-        version = payload.model
-        if version == 'installed':
-            version += ':' + str(analysis.MODEL_PATH.stat().st_mtime_ns)
+        path = analysis.model_path(payload.model)
+        if path.suffix == '.pt' and not inference_dependencies_available():
+            raise HTTPException(503, 'PT 权重需要安装 requirements-inference.txt；可改用 ONNX 模型。')
+        version = payload.model + ':' + str(path.stat().st_mtime_ns)
+        started = time.perf_counter()
         predict = preview_predictor(version)
         boxes = [item['bbox'] for item in predict(frame, 1 - payload.sensitivity, 0.45)]
-        return answer({'boxes': boxes, 'width': frame.shape[1], 'height': frame.shape[0]})
+        return answer({'boxes': boxes, 'width': frame.shape[1], 'height': frame.shape[0],
+                       'inference_ms': round((time.perf_counter() - started) * 1000, 1)})
     except (ValueError, RuntimeError, OSError, analysis.cv2.error):
         raise HTTPException(503, '检测暂不可用，请检查所选模型') from None
     finally:

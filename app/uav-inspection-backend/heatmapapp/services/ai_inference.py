@@ -8,7 +8,7 @@ import concurrent.futures
 from typing import Dict, Any, Optional
 from datetime import datetime
 from deployment_paths import BACKEND_DATA_ROOT, backend_path
-from optional_inference import InferenceUnavailableError, load_yolo_model
+from optional_inference import serialized_inference, InferenceUnavailableError, load_yolo_model, model_signature
 from heatmapapp.utils.srt_parser import parse_dji_srt_file
 from heatmapapp.services.gis_solver import pixel_to_wgs84
 from heatmapapp.services.task_manager import task_manager, TaskStatus
@@ -67,10 +67,14 @@ class InferenceEngine:
         # 单线程后台线程池，用于推理
         self.ai_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
+    @serialized_inference
     def ensure_model(self) -> None:
         """An absent optional model must not masquerade as zero detected people."""
-        if self.model is not None:
+        signature = model_signature(self.model_path)
+        if self.model is not None and getattr(self, '_loaded_signature', None) == signature:
             return
+        self.model = None
+        self._loaded_signature = signature
         try:
             self.model = load_yolo_model(self.model_path)
             self.model_error = None
@@ -79,6 +83,7 @@ class InferenceEngine:
             self.model_error = str(exc)
             raise
 
+    @serialized_inference
     def _reset_track_state(self):
         if not self.model:
             return
@@ -112,6 +117,7 @@ class InferenceEngine:
             }
         return self.task_states[task_id]
 
+    @serialized_inference
     def _run_ai_task(self, frame, curr_tel, w, h):
         if not self.model:
             return []
@@ -156,6 +162,7 @@ class InferenceEngine:
             })
         return targets
 
+    @serialized_inference
     def _run_ai_task(self, frame, curr_tel, w, h):
         if not self.model:
             return []

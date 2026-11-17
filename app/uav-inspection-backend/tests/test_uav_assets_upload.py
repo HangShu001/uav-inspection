@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import base64
 import sys
 import tempfile
 import unittest
@@ -57,7 +58,8 @@ class AssetsUploadTests(unittest.TestCase):
 
     def test_02_upload_lands_in_category_directory(self):
         from deployment_paths import backend_path
-        response = self.upload("heatmap-videos", "demo.mp4", b"\x00\x00\x00\x18ftyp")
+        video = base64.b64decode((Path(__file__).parent / 'fixtures/video.mp4.b64').read_text())
+        response = self.upload("heatmap-videos", "demo.mp4", video)
         self.assertEqual(response.status_code, 200)
         data = response.json()["data"]
         self.assertEqual(len(data["saved"]), 1)
@@ -86,13 +88,14 @@ class AssetsUploadTests(unittest.TestCase):
 
     def test_05_duplicate_rejected_unless_overwrite(self):
         from deployment_paths import backend_path
-        first = self.upload("wall-media", "dup.mp4", b"one")
+        first = self.upload("models", "dup.bin", b"one")
         self.assertEqual(len(first.json()["data"]["saved"]), 1)
-        second = self.upload("wall-media", "dup.mp4", b"two")
-        self.assertEqual(second.json()["data"]["skipped"][0]["name"], "dup.mp4")
-        target = backend_path("walldata", "media") / "dup.mp4"
+        second = self.upload("models", "dup.bin", b"two")
+        self.assertEqual(second.json()["data"]["skipped"][0]["name"], "dup.bin")
+        from deployment_paths import project_path
+        target = project_path("models") / "dup.bin"
         self.assertEqual(target.read_bytes(), b"one")
-        third = self.upload("wall-media", "dup.mp4", b"three", overwrite="true")
+        third = self.upload("models", "dup.bin", b"three", overwrite="true")
         self.assertEqual(target.read_bytes(), b"three")
 
     def test_06_subdir_upload_and_listing(self):

@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import InspectionHeader from '../components/common/InspectionHeader.vue'
 import DetectionVideoFrame from '../components/common/DetectionVideoFrame.vue'
 import FloatingNotice from '../components/common/FloatingNotice.vue'
+import { apiErrorMessage } from '../utils/request'
 import {
   pruningApi,
   type PruningDetectResult,
@@ -946,8 +947,8 @@ async function detectCurrentFrame() {
     recordDetectionLog(imageUrl, result.data, latency, video.currentTime)
     lastCaptureSize.value = { width, height }
     drawDetections(width, height)
-  } catch {
-    setMessage('乔木修剪检测失败，请确认模型已经正常加载。', 'error')
+  } catch (failure) {
+    setMessage(apiErrorMessage(failure, '乔木修剪检测失败，请检查模型与后端连接。'), 'error')
   } finally {
     detecting.value = false
   }

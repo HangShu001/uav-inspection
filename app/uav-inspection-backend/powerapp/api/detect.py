@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from powerapp.detector import power_detector
+from browser_video import store_video
 from deployment_paths import backend_path
 from uav_url_prefix import prefixed
 
@@ -53,7 +54,7 @@ def _safe_stem(name: str) -> str:
 
 
 @router.get('/health')
-async def power_health() -> dict[str, object]:
+def power_health() -> dict[str, object]:
     try:
         power_detector.load_model()
         return {'code': 200, 'message': 'success', 'data': {'status': 'ready', 'service_status': 'running', 'inference_available': True, 'model': 'loaded'}}
@@ -81,17 +82,16 @@ async def power_videos() -> dict[str, object]:
 
 
 @router.post('/tasks/upload')
-async def power_upload_task(
+def power_upload_task(
     task_name: str = Form(''),
     video: UploadFile = File(...),
 ) -> dict[str, object]:
     original_name = video.filename or 'power-task.mp4'
     task_id = uuid.uuid4().hex[:12]
-    stored_name = f'{task_id}_{_safe_stem(original_name)}{Path(original_name).suffix or ".mp4"}'
+    stored_name = f'{task_id}_{_safe_stem(original_name)}.mp4'
     target_path = MEDIA_DIR / stored_name
 
-    with target_path.open('wb') as target:
-        shutil.copyfileobj(video.file, target)
+    store_video(video.file, target_path, original_name)
 
     meta = {
         'task_id': task_id,
@@ -127,7 +127,7 @@ async def power_update_config(payload: PowerConfigRequest) -> dict[str, object]:
 
 
 @router.get('/info')
-async def power_info() -> dict[str, object]:
+def power_info() -> dict[str, object]:
     try:
         return {'code': 200, 'message': 'success', 'data': power_detector.get_info()}
     except FileNotFoundError as exc:
@@ -137,7 +137,7 @@ async def power_info() -> dict[str, object]:
 
 
 @router.post('/detect')
-async def power_detect(payload: PowerDetectRequest) -> JSONResponse:
+def power_detect(payload: PowerDetectRequest) -> JSONResponse:
     try:
         result = power_detector.detect_base64(payload.image, conf_threshold=payload.conf, iou_threshold=payload.iou)
         return JSONResponse({'code': 200, 'message': 'success', 'data': result})

@@ -8,7 +8,7 @@ from typing import Any
 import cv2
 import numpy as np
 from deployment_paths import backend_path
-from optional_inference import inference_device, load_yolo_model
+from optional_inference import class_mapping, serialized_inference, model_signature, inference_device, load_yolo_model
 
 MODEL_PATH = backend_path('powerapp', 'wire-pole-seg.pt')
 
@@ -46,9 +46,13 @@ class PowerDetector:
         self.iou_threshold = 0.45
         self._initialized = True
 
+    @serialized_inference
     def load_model(self) -> None:
-        if self.model is not None:
+        signature = model_signature(MODEL_PATH)
+        if self.model is not None and getattr(self, '_loaded_signature', None) == signature:
             return
+        self.model = None
+        self._loaded_signature = signature
         self.model = load_yolo_model(MODEL_PATH)
         self.device = inference_device()
         try:
@@ -56,15 +60,17 @@ class PowerDetector:
         except Exception:
             pass
 
+    @serialized_inference
     def detect(self, image_bgr: np.ndarray, conf_threshold: float | None = None, iou_threshold: float | None = None) -> dict[str, Any]:
         self.load_model()
         assert self.model is not None
 
+        mapping = class_mapping(self.model, CLASS_NAMES, CLASS_CN)
         conf = self.conf_threshold if conf_threshold is None else conf_threshold
         iou = self.iou_threshold if iou_threshold is None else iou_threshold
         started_at = time.perf_counter()
 
-        results = self.model(image_bgr, conf=conf, iou=iou, classes=[1, 2], verbose=False, device=self.device)
+        results = self.model(image_bgr, conf=conf, iou=iou, classes=list(mapping), verbose=False, device=self.device)
         detections: list[dict[str, Any]] = []
         stats = {'Wire': 0, 'WirePole': 0}
         annotated = image_bgr.copy()
@@ -74,7 +80,7 @@ class PowerDetector:
             if boxes is None:
                 continue
             for index in range(len(boxes)):
-                cls_id = int(boxes.cls[index].item())
+                cls_id = mapping.get(int(boxes.cls[index].item()), -1)
                 if cls_id not in CLASS_NAMES:
                     continue
                 score = float(boxes.conf[index].item())

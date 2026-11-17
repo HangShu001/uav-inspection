@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from deployment_paths import backend_path
-from optional_inference import inference_device, load_yolo_model
+from optional_inference import serialized_inference, model_signature, inference_device, load_yolo_model
 
 
 MODEL_PATH = backend_path("wallapp", "wall-damage-best.pt")
@@ -72,9 +72,14 @@ class WallDetector:
         self.iou_threshold = 0.45
         self._initialized = True
 
+    @serialized_inference
     def load_model(self) -> None:
-        if self.model is not None or self.model_error is not None:
+        signature = model_signature(MODEL_PATH)
+        if getattr(self, '_loaded_signature', None) == signature and (self.model is not None or self.model_error is not None):
             return
+        self.model = None
+        self.model_error = None
+        self._loaded_signature = signature
         try:
             self.model = load_yolo_model(MODEL_PATH)
             self.device = inference_device()
@@ -89,6 +94,7 @@ class WallDetector:
     def is_model_available(self) -> bool:
         return MODEL_PATH.exists()
 
+    @serialized_inference
     def detect(
         self,
         image_bgr: np.ndarray,

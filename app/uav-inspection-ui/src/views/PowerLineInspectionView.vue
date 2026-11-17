@@ -4,6 +4,7 @@ import { powerApi, type PowerDetectResult, type PowerInfoResult, type PowerVideo
 import InspectionHeader from '../components/common/InspectionHeader.vue'
 import DetectionVideoFrame from '../components/common/DetectionVideoFrame.vue'
 import FloatingNotice from '../components/common/FloatingNotice.vue'
+import { apiErrorMessage } from '../utils/request'
 
 interface PowerTask {
   id: string
@@ -194,8 +195,8 @@ async function confirmUploadTask() {
       selectTask(task)
     }
     message.value = `任务已上传并写入记录：${taskName}`
-  } catch {
-    message.value = '上传失败，请检查后端上传接口。'
+  } catch (failure) {
+    message.value = apiErrorMessage(failure, '上传失败，请检查后端上传接口。')
   } finally {
     uploadingTask.value = false
   }
@@ -350,8 +351,8 @@ async function detectCurrentFrame() {
     currentStats.value = result.data.stats
     lastCaptureSize.value = { width, height }
     drawDetections(width, height)
-  } catch {
-    message.value = '杆路检测失败，请确认后端模型已经正常加载。'
+  } catch (failure) {
+    message.value = apiErrorMessage(failure, '杆路检测失败，请检查模型与后端连接。')
   } finally {
     detecting.value = false
   }

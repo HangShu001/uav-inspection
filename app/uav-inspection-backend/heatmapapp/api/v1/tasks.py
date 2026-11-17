@@ -18,6 +18,7 @@ from heatmapapp.services.ai_inference import engine
 from heatmapapp.services.task_manager import task_manager, TaskStatus
 from uav_url_prefix import prefixed
 from deployment_paths import backend_path
+from browser_video import store_video
 router = APIRouter()
 DATA_DIR = backend_path("heatmapdata", "videos")
 
@@ -117,7 +118,7 @@ async def upload_task(video: UploadFile = File(...), srt: Optional[UploadFile] =
     video_path, srt_path, _ = _task_paths(task_id)
 
     # 大文件写入在线程池中执行，不阻塞 asyncio 事件循环
-    await asyncio.to_thread(_sync_save_file, video.file, video_path)
+    await asyncio.to_thread(store_video, video.file, video_path, video.filename or 'video.mp4')
     if srt and srt.filename:
         await asyncio.to_thread(_sync_save_file, srt.file, srt_path)
 

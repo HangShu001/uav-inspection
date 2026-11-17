@@ -26,8 +26,9 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && apt-get update -qq -o Acquire::AllowInsecureRepositories=true \
     && apt-get install -y -qq --no-install-recommends --allow-unauthenticated libxcb1 libgl1 libglib2.0-0 fonts-noto-cjk ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-# Opt in to real CPU inference; trained business weights still come from /data.
-ARG UAV_INSTALL_INFERENCE=0
+# Include CPU inference by default so uploaded PT weights can actually run.
+# Set 0 explicitly for a lightweight replay-only deployment.
+ARG UAV_INSTALL_INFERENCE=1
 RUN case "$UAV_INSTALL_INFERENCE" in \
       1) pip install --no-cache-dir torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cpu \
          && pip install --no-cache-dir -r /tmp/requirements-inference.txt ;; \

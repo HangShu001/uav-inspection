@@ -6,13 +6,15 @@ import {
   ArrowLeft, CircleCheck, FolderOpen, HardDriveUpload, Pause, Play,
   RefreshCw, RotateCcw, TriangleAlert, UploadCloud,
 } from 'lucide-vue-next'
-import { http } from '../utils/request'
+import { http, request } from '../utils/request'
+import { webPath } from '../utils/webroot'
 
 interface CategoryOption {
   key: string
   label: string
   target: string
   hint?: string
+  expected_filename?: string
 }
 
 interface FileEntry {
@@ -73,7 +75,7 @@ interface BatchData {
 // 小文件（≤8MB）走原批量直传（多文件一次请求更快），大文件走分片
 const SMALL_BATCH_LIMIT = 8 * 1024 * 1024
 const CHUNK_TIMEOUT = 120_000
-const COMPLETE_TIMEOUT = 120_000
+const COMPLETE_TIMEOUT = 660_000
 
 const router = useRouter()
 const route = useRoute()
@@ -89,11 +91,48 @@ const files = ref<FileEntry[]>([])
 const filesRoot = ref('')
 const selectedCategory = computed(() => categories.value.find(item => item.key === category.value))
 
+interface ModuleStatus { title: string; route: string; mode: string; configured: boolean; missing: { label: string; category: string; subdir: string }[]; note: string }
+const modules = ref<Record<string, ModuleStatus>>({})
+const checkingModule = ref('')
+const checkResult = ref<{ model_ready: boolean | null; message: string; missing: ModuleStatus['missing'] } | null>(null)
+const selectedModuleKey = computed(() => {
+  const key = category.value.split('-')[0] || ''
+  return key === 'tree' ? 'height' : key === 'measurement' || key === 'models' ? 'area' : key
+})
+const selectedModule = computed(() => modules.value[selectedModuleKey.value])
+const mediaCategories: Record<string, string> = { telecom: 'telecom-tasks', rose: 'rose-tasks', power: 'power-media',
+  pruning: 'pruning-media', heatmap: 'heatmap-videos', roof: 'roof-media', height: 'tree-instances',
+  area: 'measurement-data', fendai: 'fendai-scenes' }
+watch(category, () => { checkResult.value = null })
+async function loadStatus() {
+  try {
+    const response = await fetch(webPath('/api/deployment/status'))
+    if (!response.ok) throw new Error()
+    modules.value = (await response.json()).data.modules
+  } catch { message.kind = 'err'; message.text = '无法读取模块状态，请检查后端连接。' }
+}
+async function checkModule() {
+  if (!selectedModule.value || checkingModule.value) return
+  checkingModule.value = selectedModuleKey.value
+  checkResult.value = null
+  try {
+    const result = await request<{ model_ready: boolean | null; message: string; missing: ModuleStatus['missing'] }>({
+      url: '/assets/check/' + checkingModule.value, method: 'POST', timeout: 180000,
+    })
+    checkResult.value = result.data
+    await loadStatus()
+  } catch (failure) { message.kind = 'err'; message.text = uploadErrorMessage(failure) }
+  finally { checkingModule.value = '' }
+}
+function destinationName(t: UploadTask) {
+  return categories.value.find(item => item.key === t.category)?.expected_filename || t.file.name
+}
+
 function applyUploadQuery() {
   const requested = route.query.category
   if (typeof requested === 'string' && categories.value.some(item => item.key === requested)) {
     category.value = requested
-    subdir.value = typeof route.query.subdir === 'string' ? route.query.subdir : ''
+    subdir.value = categories.value.find(item => item.key === requested)?.expected_filename ? '' : typeof route.query.subdir === 'string' ? route.query.subdir : ''
   }
 }
 
@@ -140,13 +179,13 @@ function onPick(event: Event) {
 }
 
 function storageKey(t: UploadTask): string {
-  return `uav-up:${t.category}:${t.subdir}:${t.file.name}:${t.file.size}:${t.file.lastModified}`
+  return `uav-up:${t.category}:${t.subdir}:${destinationName(t)}:${t.overwrite}:${t.file.size}:${t.file.lastModified}`
 }
 
 function initForm(t: UploadTask): FormData {
   const form = new FormData()
   form.append('category', t.category)
-  form.append('filename', t.file.name)
+  form.append('filename', destinationName(t))
   form.append('size', String(t.file.size))
   form.append('subdir', t.subdir)
   form.append('overwrite', t.overwrite ? 'true' : 'false')
@@ -185,10 +224,12 @@ async function resumeTask(t: UploadTask) {
   busy.value = true
   stopping.value = false
   message.text = ''
+  checkResult.value = null
   try {
     await startTask(t)
     updateUploadSummary()
     await refreshFiles()
+    await loadStatus()
   } finally {
     busy.value = false
     stopping.value = false
@@ -221,8 +262,8 @@ async function startTask(t: UploadTask) {
         signal: t.controller.signal,
       })
       if (res.data.mode === 'instant') {
-        t.status = 'done'
-        t.note = '秒传命中（服务端已有同名同大小文件）'
+        t.status = 'skipped'
+        t.note = '已有同名同大小文件，未覆盖；如需替换，请开启覆盖后重新选择文件。'
         t.uploaded = t.total
         localStorage.removeItem(localKey)
         return
@@ -283,24 +324,24 @@ async function uploadSmallBatch(batch: UploadTask[]) {
   form.append('category', batch[0].category)
   form.append('subdir', batch[0].subdir)
   form.append('overwrite', batch[0].overwrite ? 'true' : 'false')
-  batch.forEach(t => form.append('files', t.file, t.file.name))
+  batch.forEach(t => form.append('files', t.file, destinationName(t)))
   const controller = new AbortController()
-  batch.forEach(t => { t.controller = controller })
+  batch.forEach(t => { t.controller = controller; t.status = 'uploading'; t.note = '' })
   try {
     const res = await http.postForm<BatchData>('/assets/upload', form, {
-      timeout: CHUNK_TIMEOUT,
+      timeout: COMPLETE_TIMEOUT,
       signal: controller.signal,
     })
     const savedNames = new Set(res.data.saved.map(s => s.name))
     const skippedMap = new Map(res.data.skipped.map(s => [s.name, s.reason]))
     for (const t of batch) {
-      if (savedNames.has(t.file.name)) {
+      if (savedNames.has(destinationName(t))) {
         t.status = 'done'
         t.uploaded = t.total
         t.note = '已保存'
-      } else if (skippedMap.has(t.file.name)) {
+      } else if (skippedMap.has(destinationName(t))) {
         t.status = 'skipped'
-        t.note = skippedMap.get(t.file.name) ?? '已跳过'
+        t.note = skippedMap.get(destinationName(t)) ?? '已跳过'
       } else {
         t.status = 'error'
         t.note = '服务端未确认该文件'
@@ -311,8 +352,8 @@ async function uploadSmallBatch(batch: UploadTask[]) {
     for (const t of batch) {
       t.controller = null
       if (axios.isCancel(error)) {
-        t.status = 'waiting'
-        t.note = ''
+        t.status = 'paused'
+        t.note = '已暂停，继续时重新上传此文件'
       } else {
         t.status = 'error'
         t.note = uploadErrorMessage(error)
@@ -333,6 +374,9 @@ async function startUpload() {
     message.text = '没有待上传的文件'
     return
   }
+  if (selectedCategory.value?.expected_filename && (queue.length > 1 || !queue[0]?.file.name.toLowerCase().endsWith('.pt'))) {
+    message.kind = 'err'; message.text = '每次请选择一个可信的 .pt 权重，系统会按模块要求保存文件名。'; return
+  }
   queue.forEach(t => {
     t.category = category.value
     t.subdir = subdir.value.trim()
@@ -342,6 +386,7 @@ async function startUpload() {
   stopping.value = false
   message.kind = ''
   message.text = ''
+  checkResult.value = null
   try {
     const smalls = queue.filter(t => t.file.size <= SMALL_BATCH_LIMIT)
     const larges = queue.filter(t => t.file.size > SMALL_BATCH_LIMIT)
@@ -352,6 +397,7 @@ async function startUpload() {
     }
     updateUploadSummary()
     await refreshFiles()
+    await loadStatus()
   } finally {
     busy.value = false
     stopping.value = false
@@ -381,9 +427,11 @@ function taskBadgeText(t: UploadTask): string {
 }
 
 onMounted(async () => {
-  await loadCategories()
-  applyUploadQuery()
-  await refreshFiles()
+  try {
+    await Promise.all([loadCategories(), loadStatus()])
+    applyUploadQuery()
+    await refreshFiles()
+  } catch (failure) { message.kind = 'err'; message.text = uploadErrorMessage(failure) }
 })
 </script>
 
@@ -407,6 +455,21 @@ onMounted(async () => {
     </header>
 
     <main class="mx-auto flex w-full max-w-[1100px] flex-1 flex-col gap-4 px-4 py-4 sm:gap-6 sm:px-8 sm:py-8">
+      <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <h2 class="text-lg font-bold text-slate-800">按模块准备演示</h2>
+        <p class="mt-2 text-sm text-slate-600">先选择模块，再上传素材与权重。文件保存后，点击“检查并试运行模型”确认推理环境。视频上传后还需进入模块选择任务并开始播放或检测。</p>
+        <div class="mt-3 grid gap-2 sm:grid-cols-3">
+          <div v-for="(item, key) in modules" :key="key" class="rounded-md border p-3 text-sm" :class="key === selectedModuleKey ? 'border-blue-400 bg-blue-50' : 'border-slate-200'">
+            <RouterLink :to="item.route" class="font-bold hover:underline">{{ item.title }} →</RouterLink>
+            <p class="mt-1 text-xs text-slate-500">{{ item.mode === 'inference' ? item.configured ? '素材已配置，模型需试运行确认' : '视频、权重与运行环境需齐备' : item.mode === 'offline-results' ? '离线结果回放' : item.mode === 'simulation' ? '内置仿真演示' : '场景与数据展示' }}</p>
+            <div class="mt-2 flex flex-wrap gap-3 text-xs font-semibold text-blue-800">
+              <RouterLink v-if="key === 'wall'" to="/wall?upload=1">上传外墙任务</RouterLink>
+              <RouterLink v-else-if="mediaCategories[key]" :to="{ path: '/assets', query: { category: mediaCategories[key] } }">上传素材</RouterLink>
+              <RouterLink v-if="item.mode === 'inference'" :to="{ path: '/assets', query: { category: key + '-model' } }">上传权重 / 试运行</RouterLink>
+            </div>
+          </div>
+        </div>
+      </section>
       <section class="flex flex-col gap-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <UploadCloud :size="20" class="text-blue-600" /> 上传素材
@@ -416,7 +479,7 @@ onMounted(async () => {
           <label class="flex flex-col gap-1.5 text-sm font-medium text-slate-600">
             素材分类
             <select
-              v-model="category"
+              v-model="category" :disabled="busy"
               class="w-full min-w-0 rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               @change="subdir = ''; refreshFiles()"
             >
@@ -429,6 +492,7 @@ onMounted(async () => {
             子目录（可选，如任务名，留空传到分类根）
             <input
               v-model="subdir"
+              :disabled="busy || !!selectedCategory?.expected_filename"
               type="text"
               placeholder="task-2026/demo"
               class="w-full min-w-0 rounded-md border border-slate-300 px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -441,6 +505,20 @@ onMounted(async () => {
           <span class="block break-all">目标目录：{{ selectedCategory.target }}</span>
           <span v-if="selectedCategory.hint" class="mt-1 block">{{ selectedCategory.hint }}</span>
         </p>
+
+        <div v-if="selectedModule" class="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950">
+          <p>{{ selectedModule.note }}</p>
+          <p v-if="selectedCategory?.expected_filename" class="mt-1">将按模块要求保存为 {{ selectedCategory.expected_filename }}，无需手动改名。权重仅使用你信任的训练文件。</p>
+          <p v-if="category.startsWith('wall-')" class="mt-1">外墙新工作台的视频需要绑定任务。通用目录中的历史视频供旧工具使用。</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <RouterLink :to="category.startsWith('wall-') ? '/wall?upload=1' : selectedModule.route" class="rounded border border-blue-300 bg-white px-3 py-2 font-semibold">{{ category.startsWith('wall-') ? '上传外墙任务 / ONNX 模型' : '进入模块上传并演示' }}</RouterLink>
+            <button class="rounded border border-blue-300 bg-white px-3 py-2" :disabled="!!checkingModule || busy" @click="checkModule">{{ checkingModule ? '正在加载并试运行…' : '检查并试运行模型' }}</button>
+          </div>
+          <div v-if="checkResult" class="mt-3" role="status">
+            <strong :class="checkResult.model_ready === false ? 'text-red-800' : 'text-teal-800'">{{ checkResult.message }}</strong>
+            <ul v-if="checkResult.missing.length" class="mt-2 list-inside list-disc"><li v-for="item in checkResult.missing" :key="item.label">{{ item.label }}</li></ul>
+          </div>
+        </div>
 
         <label class="flex cursor-pointer select-none items-start gap-2 text-sm leading-5 text-slate-600 sm:items-center">
           <input v-model="overwrite" type="checkbox" class="h-4 w-4 accent-blue-600" />

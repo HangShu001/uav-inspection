@@ -1,6 +1,9 @@
 """玫瑰检测 API 路由"""
 import os
 import shutil
+import re
+from pathlib import Path
+from browser_video import store_video
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field, ConfigDict
 from roseapp.detector import rose_detector
@@ -42,7 +45,7 @@ class TaskUploadResponse(BaseModel):
 
 
 @router.post("/detect", response_model=DetectResponse)
-async def detect_roses(req: DetectRequest):
+def detect_roses(req: DetectRequest):
     """对单帧图片进行玫瑰检测"""
     try:
         result = rose_detector.detect_base64(req.image, req.conf, req.iou)
@@ -56,37 +59,50 @@ async def detect_roses(req: DetectRequest):
 
 
 @router.post("/tasks/upload", response_model=TaskUploadResponse)
-async def upload_task(
+def upload_task(
     task_id: str = Form(...),
     task_name: str = Form(""),
     video: UploadFile = File(...),
-    srt: UploadFile = File(...),
+    srt: UploadFile | None = File(None),
 ):
     """上传任务文件：视频 + SRT 字幕"""
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', task_id):
+        raise HTTPException(422, '任务编号只能包含字母、数字、下划线和短横线')
     task_dir = os.path.join(ROSE_TASKS_DIR, task_id)
+    if os.path.exists(task_dir):
+        raise HTTPException(409, '任务编号已存在，请新建任务')
+    original_name = (video.filename or 'video.mp4').replace('\\', '/').rsplit('/', 1)[-1]
+    video_name = Path(original_name).stem + '.mp4'
+    srt_name = (srt.filename or 'subtitle.srt').replace('\\', '/').rsplit('/', 1)[-1] if srt else ''
+    if srt and Path(srt_name).suffix.lower() != '.srt':
+        raise HTTPException(422, '请选择 SRT 字幕文件')
     os.makedirs(task_dir, exist_ok=True)
 
     # 保存视频
-    video_path = os.path.join(task_dir, video.filename or "video.mp4")
-    with open(video_path, "wb") as f:
-        shutil.copyfileobj(video.file, f)
+    video_path = Path(task_dir) / video_name
+    try:
+        store_video(video.file, video_path, original_name)
+    except Exception:
+        shutil.rmtree(task_dir, ignore_errors=True)
+        raise
 
     # 保存 SRT
-    srt_path = os.path.join(task_dir, srt.filename or "subtitle.srt")
-    with open(srt_path, "wb") as f:
-        shutil.copyfileobj(srt.file, f)
+    srt_path = os.path.join(task_dir, srt_name)
+    if srt:
+        with open(srt_path, "wb") as f:
+            shutil.copyfileobj(srt.file, f)
 
     # 保存任务元信息
     meta_path = os.path.join(task_dir, "meta.txt")
     with open(meta_path, "w", encoding="utf-8") as f:
         f.write(f"name={task_name}\n")
-        f.write(f"video={video.filename or 'video.mp4'}\n")
-        f.write(f"srt={srt.filename or 'subtitle.srt'}\n")
+        f.write(f"video={video_name}\n")
+        f.write(f"srt={srt_name}\n")
 
     return TaskUploadResponse(
         task_id=task_id,
-        video_path=prefixed(f"/api/v1/rose/tasks/{task_id}/{video.filename or 'video.mp4'}"),
-        srt_path=prefixed(f"/api/v1/rose/tasks/{task_id}/{srt.filename or 'subtitle.srt'}"),
+        video_path=prefixed(f"/api/v1/rose/tasks/{task_id}/{video_name}"),
+        srt_path=prefixed(f"/api/v1/rose/tasks/{task_id}/{srt_name}") if srt_name else '',
     )
 
 
@@ -134,7 +150,7 @@ async def list_existing_tasks():
 
 
 @router.get("/health")
-async def health_check():
+def health_check():
     """检查模型是否已加载"""
     try:
         rose_detector.load_model()

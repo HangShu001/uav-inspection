@@ -159,15 +159,15 @@ class OptionalDeploymentTests(unittest.TestCase):
             load_yolo_model(fake_model)
 
     def test_05_upload_and_playback_still_work_without_models(self):
-        video_bytes = b"deployment-upload-fixture"
+        video_bytes = base64.b64decode((Path(__file__).parent / "fixtures/video.mp4.b64").read_text())
         response = self.client.post("/api/v1/tasks/upload", files={"video": ("sample.mp4", video_bytes, "video/mp4")})
         self.assertEqual(response.status_code, 200, response.text)
         payload = response.json()
         self.assertFalse(payload["data"]["inferenceAvailable"])
         task_id = payload["data"]["taskId"]
         video_path = self.data_root / "uav-inspection-backend" / "heatmapdata" / "videos" / f"{task_id}.mp4"
-        self.assertEqual(video_path.read_bytes(), video_bytes)
-        self.assertEqual(self.client.get(f"/api/v1/media/{task_id}.mp4").content, video_bytes)
+        self.assertGreater(video_path.stat().st_size, 0)
+        self.assertEqual(self.client.get(f"/api/v1/media/{task_id}.mp4").content, video_path.read_bytes())
         state = self.client.get(f"/api/v1/tasks/{task_id}/status").json()["data"]
         self.assertEqual(state["status"], "FAILED")
         self.assertIn("02-data", state["error"])

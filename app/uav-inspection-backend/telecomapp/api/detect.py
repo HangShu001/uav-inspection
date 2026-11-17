@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from telecomapp.detector import telecom_detector
+from browser_video import store_video
 from deployment_paths import backend_path
 from uav_url_prefix import prefixed
 
@@ -74,7 +75,7 @@ def _read_task_meta(task_dir: Path) -> dict[str, str]:
                 break
     if not meta['srt_name']:
         for candidate in task_dir.iterdir():
-            if candidate.suffix.lower() in SUPPORTED_SUBTITLE_SUFFIXES:
+            if candidate.name != 'meta.txt' and candidate.suffix.lower() in SUPPORTED_SUBTITLE_SUFFIXES:
                 meta['srt_name'] = candidate.name
                 break
 
@@ -94,7 +95,7 @@ def _serialize_task(task_dir: Path) -> dict[str, object] | None:
     meta = _read_task_meta(task_dir)
     video_name = str(meta['video_name'])
     srt_name = str(meta['srt_name'])
-    if not video_name or not srt_name:
+    if not video_name:
         return None
 
     return {
@@ -104,12 +105,12 @@ def _serialize_task(task_dir: Path) -> dict[str, object] | None:
         'srt_name': srt_name,
         'created_at': meta['created_at'],
         'video_url': prefixed(f"/api/v1/telecom/tasks/{meta['task_id']}/{video_name}"),
-        'srt_url': prefixed(f"/api/v1/telecom/tasks/{meta['task_id']}/{srt_name}"),
+        'srt_url': prefixed(f"/api/v1/telecom/tasks/{meta['task_id']}/{srt_name}") if srt_name else '',
     }
 
 
 @router.get('/health')
-async def telecom_health() -> dict[str, object]:
+def telecom_health() -> dict[str, object]:
     try:
         telecom_detector.load_model()
         return {
@@ -164,16 +165,17 @@ async def telecom_tasks() -> dict[str, object]:
 
 
 @router.post('/tasks/upload')
-async def telecom_upload_task(
+def telecom_upload_task(
     task_name: str = Form(''),
     video: UploadFile = File(...),
-    srt: UploadFile = File(...),
+    srt: UploadFile | None = File(None),
 ) -> dict[str, object]:
-    video_name = video.filename or 'video.mp4'
-    srt_name = srt.filename or 'subtitle.srt'
-    if Path(video_name).suffix.lower() not in SUPPORTED_VIDEO_SUFFIXES:
+    original_name = (video.filename or 'video.mp4').replace('\\', '/').rsplit('/', 1)[-1]
+    video_name = Path(original_name).stem + '.mp4'
+    srt_name = (srt.filename or 'subtitle.srt').replace('\\', '/').rsplit('/', 1)[-1] if srt else ''
+    if Path(original_name).suffix.lower() not in SUPPORTED_VIDEO_SUFFIXES:
         raise HTTPException(status_code=400, detail='仅支持 mp4、avi、mov、mkv 视频文件')
-    if Path(srt_name).suffix.lower() not in SUPPORTED_SUBTITLE_SUFFIXES:
+    if srt and Path(srt_name).suffix.lower() not in SUPPORTED_SUBTITLE_SUFFIXES:
         raise HTTPException(status_code=400, detail='仅支持 srt、txt、vtt 字幕文件')
 
     task_id = uuid.uuid4().hex[:12]
@@ -183,10 +185,14 @@ async def telecom_upload_task(
     video_path = task_dir / video_name
     srt_path = task_dir / srt_name
 
-    with video_path.open('wb') as target:
-        shutil.copyfileobj(video.file, target)
-    with srt_path.open('wb') as target:
-        shutil.copyfileobj(srt.file, target)
+    try:
+        store_video(video.file, video_path, original_name)
+    except Exception:
+        shutil.rmtree(task_dir, ignore_errors=True)
+        raise
+    if srt:
+        with srt_path.open('wb') as target:
+            shutil.copyfileobj(srt.file, target)
 
     meta_file = task_dir / 'meta.txt'
     with meta_file.open('w', encoding='utf-8') as target:
@@ -204,7 +210,7 @@ async def telecom_upload_task(
             'video_name': video_name,
             'srt_name': srt_name,
             'video_url': prefixed(f'/api/v1/telecom/tasks/{task_id}/{video_name}'),
-            'srt_url': prefixed(f'/api/v1/telecom/tasks/{task_id}/{srt_name}'),
+            'srt_url': prefixed(f'/api/v1/telecom/tasks/{task_id}/{srt_name}') if srt_name else '',
         },
     }
 
@@ -268,7 +274,7 @@ async def telecom_update_config(payload: TelecomConfigRequest) -> dict[str, obje
 
 
 @router.get('/info')
-async def telecom_info() -> dict[str, object]:
+def telecom_info() -> dict[str, object]:
     try:
         return {
             'code': 200,
@@ -282,7 +288,7 @@ async def telecom_info() -> dict[str, object]:
 
 
 @router.post('/detect')
-async def telecom_detect(payload: TelecomDetectRequest) -> JSONResponse:
+def telecom_detect(payload: TelecomDetectRequest) -> JSONResponse:
     try:
         result = telecom_detector.detect_base64(payload.image, conf_threshold=payload.conf, iou_threshold=payload.iou)
         return JSONResponse({

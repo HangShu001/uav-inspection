@@ -21,7 +21,7 @@
 
 ## 安装真实推理环境
 
-默认镜像保持基础模式。需要检测时，从仓库根目录构建包含 CPU 推理依赖的镜像：
+新构建的默认镜像包含 CPU 推理依赖；`UAV_INSTALL_INFERENCE=0` 可显式选择轻量回放版本。已有基础镜像需要重建并更新容器。从仓库根目录执行：
 
 ```bash
 docker build -f deploy/docker/Dockerfile \
@@ -56,16 +56,19 @@ Dockerfile 默认前端基路径已与 Compose 的 `/uav` 一致。根路径部�
 
 | 业务 | 模型分类 / 文件名 | 视频与其他数据 |
 |---|---|---|
-| 通信基站 | `telecom-model` / `station2-best.pt` | 页面创建视频 + SRT 任务；或 `telecom-tasks` 下同一任务子目录上传视频和字幕 |
+| 通信基站 | `telecom-model` / `station2-best.pt` | 页面创建视频任务，SRT 可选；或 `telecom-tasks` 下同一任务子目录上传视频和可选字幕 |
 | 杆路线路 | `power-model` / `wire-pole-seg.pt` | `power-media`，子目录留空 |
 | 乔木修剪 | `pruning-model` / `tree-pruning-best.pt` | `pruning-media`，子目录留空 |
 | 外墙 AI 检测 | `wall-model` / `wall-damage-best.pt` | `wall-media`，子目录留空；缺模型时原规则检测仍可使用 |
-| 玫瑰产量 | `rose-model` / `rose-detect-best.pt` | 页面创建视频 + SRT 任务；或 `rose-tasks` 下同一任务子目录上传视频和字幕 |
+| 玫瑰产量 | `rose-model` / `rose-detect-best.pt` | 页面创建视频任务，SRT 可选；或 `rose-tasks` 下同一任务子目录上传视频和可选字幕 |
 | 热力客流 | `heatmap-model` / `renliu.pt` | `heatmap-videos`，同名 MP4 / SRT 放根目录 |
 
 操作时进入首页 → 素材上传中心 → 选择对应的专用模型分类 → 子目录留空 →
-选择表中固定文件名的 `.pt` → 开始上传。大文件会自动分片，暂停后可继续；
-完成后回到模块重新检查。默认不覆盖重名文件，确认要替换时再开启覆盖。
+选择可信 `.pt`（页面会自动保存为表中的固定文件名）→ 开始上传 → 检查并试运行模型。
+试运行成功后进入模块选择任务并播放或检测。大文件自动分片，暂停后可继续；默认不覆盖重名文件，替换时开启覆盖。
+素材中心与模块任务入口都会将可解码视频转为浏览器兼容 MP4；非兼容视频需要服务器安装 ffmpeg。
+外墙新版工作台需创建账号绑定的视频任务，旧 `wall-media` 目录仅供历史工具；模型可使用 ONNX 或已安装的可信 PT 权重。
+勾选“边播放边检测”预览检测框，点击“开始检测”后台生成分析记录。外墙模型上传权限由 `UAV_WALL_ADMINS` 指定。
 病虫害尚未接入实际检测器，没有可启用识别的模型上传分类；把 `.pt` 传到“其他模型”
 不会使其自动识别。页面已去除写死的病害框与置信度，改为 Three.js 仿真，无需视频。
 
