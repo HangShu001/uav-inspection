@@ -15,7 +15,7 @@
 - `note`：模块边界与后续验证方式。
 
 `configured` 仅检查文件存在和依赖包可发现，**不代表权重已成功加载或识别准确**。
-上传损坏/不匹配权重时，仍应查看模块 `/health` 和实际 `/detect` 的响应。
+上传后先在素材中心点击“检查并试运行模型”；上传损坏或不匹配权重时，结合检查结果、模块 `/health` 和实际 `/detect` 的响应定位问题。
 保留的 `data_available`、`inference_available` 是全局兼容字段，不能用来判断每个模块。
 例如只装入热力模型就可能使全局模型标志为真，通信基站仍可能缺模型。
 
@@ -59,7 +59,7 @@ Dockerfile 默认前端基路径已与 Compose 的 `/uav` 一致。根路径部�
 | 通信基站 | `telecom-model` / `station2-best.pt` | 页面创建视频任务，SRT 可选；或 `telecom-tasks` 下同一任务子目录上传视频和可选字幕 |
 | 杆路线路 | `power-model` / `wire-pole-seg.pt` | `power-media`，子目录留空 |
 | 乔木修剪 | `pruning-model` / `tree-pruning-best.pt` | `pruning-media`，子目录留空 |
-| 外墙 AI 检测 | `wall-model` / `wall-damage-best.pt` | `wall-media`，子目录留空；缺模型时原规则检测仍可使用 |
+| 外墙 AI 检测 | `wall-model` / `wall-damage-best.pt`；新版工作台也可添加单类别 YOLO ONNX | 新版工作台上传账号绑定任务；`wall-media` 仅供旧回放工具 |
 | 玫瑰产量 | `rose-model` / `rose-detect-best.pt` | 页面创建视频任务，SRT 可选；或 `rose-tasks` 下同一任务子目录上传视频和可选字幕 |
 | 热力客流 | `heatmap-model` / `renliu.pt` | `heatmap-videos`，同名 MP4 / SRT 放根目录 |
 
@@ -73,7 +73,7 @@ Dockerfile 默认前端基路径已与 Compose 的 `/uav` 一致。根路径部�
 不会使其自动识别。页面已去除写死的病害框与置信度，改为 Three.js 仿真，无需视频。
 
 玫瑰仍支持 `ROSE_MODEL_PATH` 和旧文件名 `best.pt`。部署状态与检测器使用同一查找规则。
-覆盖已加载的模型后应重启服务，以释放检测器缓存；首次补入缺失模型后可重新检查。
+替换权重后，检测器会在后续加载或检测请求中识别文件变化并重新加载。安装或更换推理依赖后仍需重启服务；外墙后台分析使用启动时冻结的权重版本。
 
 ### 树高与绿化测量
 

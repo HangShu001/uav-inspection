@@ -5,7 +5,7 @@
 **低空智能巡检与决策平台** — 一个 FastAPI + Vue 3 的无人机巡检演示系统：
 单容器部署、12 个业务模块、WebSocket 实时推理流、内置素材上传中心。
 
-[![Python](https://img.shields.io/badge/python-3.10--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-3.12--3.13-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.1xx-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Vue](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
@@ -24,23 +24,23 @@
 
 | 分组 | 模块 | 能力 |
 |---|---|---|
-| 🏗️ 基础设施巡检 | 通信基站巡检 | 部件识别、隐患排查（视频 + SRT 字幕联动） |
-| | 杆路线路巡检 | 绝缘破损、断股检测 |
-| | 建筑屋顶巡检 | 防水脱层、异物检测 |
-| | 建筑外墙巡检 | 裂缝标注、渗水识别 |
+| 🏗️ 基础设施巡检 | 通信基站巡检 | 基站、天线识别与视频检测；SRT 可选，用于定位与飞行数据 |
+| | 杆路线路巡检 | 电杆、线缆识别与视频逐帧检测 |
+| | 建筑屋顶巡检 | 离线缺陷结果、轨迹与报告回放 |
+| | 建筑外墙巡检 | 外墙脱落检测、播放标框、复核与维修工单、历史任务 |
 | 🌱 农林植保业务 | 病虫害巡检（演示） | 玉米单株与密植、三种巡检回放、病斑指标与结果对比、JSON 导出 |
 | | 乔木修剪检测 | 修剪识别、状态分析 |
-| | 树高测量 / 绿化面积 | 点云测量（PDAL 管线） |
+| | 树高测量 / 绿化面积 | 基于预处理点云和测量结果的查看与分析 |
 | 🌹 数字园区治理 | 数字玫瑰园 | 地块态势、数字档案（演示数据） |
 | | 粉黛花三维漫游 | 3D Gaussian Splatting 场景、第一人称与触控漫游 |
-| | 玫瑰花产量估计 | 产量回归 |
+| | 玫瑰花产量估计 | 花朵、花苞及采摘状态识别与计数，产量估计展示 |
 | | 热力客流监测 | 人员分布、聚集预警（实时推理流） |
-| 📦 素材管理 | **素材上传中心** | 21 分类白名单上传、业务模型专用入口、子目录组织、防覆盖开关 |
+| 📦 素材管理 | **素材上传中心** | 按模块上传、权重自动命名与试运行、视频转码、分片续传、防覆盖开关 |
 
 ### 设计特点
 
-- **单进程同源架构** — FastAPI 一个进程同时服务 REST API、WebSocket、静态前端与媒体文件，无数据库，数据全部落文件目录
-- **AI 可选降级** — 推理依赖（torch/ultralytics）与模型权重缺失时，检测接口返回带提示的 `503`，页面与上传链路照常工作（**基础部署模式**）
+- **单进程同源架构** — FastAPI 一个进程同时服务 REST API、WebSocket、静态前端与媒体文件；账号、外墙任务及工单保存在 SQLite，素材与权重保存在数据目录，无需单独部署数据库服务
+- **按模块检查推理条件** — 默认 Docker 镜像包含 CPU 推理依赖；源码仅安装 `requirements.txt` 时提供基础服务。缺少模型或运行环境时页面提示缺项，相关检测接口返回错误；外墙 ONNX 可使用基础环境中的 OpenCV 在 CPU 运行
 - **子路径友好** — 前端构建期 `VITE_BASE` + 后端运行时 `UAV_URL_PREFIX` 双参数化，同一份代码支持根路径与 `/xxx/` 子路径两种挂载方式
 - **素材即数据** — 演示素材（视频/模型/测量结果）不进镜像，经上传中心或 API 灌入持久化卷
 
@@ -91,17 +91,21 @@ uav-inspection/
 
 ### 方式一：开发者笔记本（venv，适合开发调试）
 
-> 适合 Windows / macOS 本地跑起来看效果。需要 Python 3.10–3.13 与 Node 22.12+。
+> 适合 Windows / macOS / Linux 本地调试。锁定依赖需要 Python 3.12–3.13（推荐 3.12），以及 Node 22.12+ 或 24 LTS。视频转码另需安装 ffmpeg，并确保命令在 PATH 中可用。
 
 ```bash
 # 1) 后端（隔离 venv，不动系统 Python）
 cd app/uav-inspection-backend
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+# 仅浏览页面、上传文件及使用外墙 ONNX 时，基础依赖即可。
+# 如需使用 PT 权重，在当前 venv 中继续安装：
+# python -m pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cpu
+# python -m pip install -r requirements-inference.txt
 python -m uvicorn heatmapapp.main:app --port 8002      # API 文档: http://localhost:8002/docs
 
-# 2) 前端（另一终端；生产模式构建后也由后端托管，开发时用 Vite 热更）
-cd ../uav-inspection-ui
+# 2) 前端（另一终端，从仓库根目录执行；开发时用 Vite 热更）
+cd app/uav-inspection-ui
 npm install
 npm run dev                                            # http://localhost:5173
 ```
@@ -112,13 +116,17 @@ npm run dev                                            # http://localhost:5173
 ### 方式二：服务器（Docker Compose，适合长期演示）
 
 ```bash
-# 0) 按需修改 deploy/.env（镜像地址/端口/子路径），cp .env.example .env
-cd deploy
-docker compose up -d
+# 以下命令均在仓库根目录执行；已有可用镜像时：
+test -f deploy/.env || cp deploy/.env.example deploy/.env
+# 按需编辑 deploy/.env，设置可访问的 UAV_IMAGE、端口和子路径
+docker compose --env-file deploy/.env -f deploy/compose.yml up -d
 curl http://127.0.0.1:18020/api/health                 # → {"status":"ok"}
 
-# 构建自己的镜像（在前端装好 node 环境的构建机或服务器上）
+# 需要自行构建并推送时（需要 Docker 和可用的 registry）：
 VITE_BASE=/uav/ bash deploy/scripts/build_and_push.sh  # UAV_REGISTRY 可覆盖 registry 地址
+# 确保 deploy/.env 中的 UAV_IMAGE 与刚推送的镜像一致，再更新容器
+docker compose --env-file deploy/.env -f deploy/compose.yml pull
+docker compose --env-file deploy/.env -f deploy/compose.yml up -d --force-recreate
 ```
 
 ### 挂到 nginx 子路径（可选）
@@ -151,8 +159,15 @@ location ^~ /uav/ {
 ### 其他模块打开后无法检测或任务为空
 
 新构建的默认镜像包含 CPU 推理依赖（`UAV_INSTALL_INFERENCE=1`）；设置为 `0` 可构建轻量回放版本。
-已有基础镜像需要重新构建并更新容器，单独上传权重不会安装服务器依赖。非 Docker 部署执行
-`python deploy.py install --backend-only --inference`，然后重启后端。
+已有基础镜像需要重新构建并更新容器，单独上传权重不会安装服务器依赖。
+源码开发环境按上面的 venv 命令安装推理依赖并重启后端。也可从仓库根目录使用独立部署环境：
+
+```bash
+python app/deploy.py install --inference
+python app/deploy.py start
+```
+
+该方式使用 `app/.venv-deploy`，安装与启动需配套使用；不会给另一套正在运行的 venv 自动添加依赖。
 页面会按模块显示缺项，并跳转到对应上传分类。上传任意文件名的可信 `.pt` 权重时，素材中心会保存为模块要求的名称。
 上传后点击“检查并试运行模型”，成功后再进入模块选择视频并开始检测。替换权重后会自动重新加载；树高与绿化模块还需点云及测量结果。
 外墙新版工作台的视频需通过“上传外墙任务”建立账号绑定任务；旧 `wall-media` 目录中的文件仅供历史工具使用。
@@ -164,6 +179,16 @@ location ^~ /uav/ {
 
 ![玉米单株与密植巡检工作台](docs/screenshots/maize-inspection.png)
 完整目录、安装命令、模块边界与验收步骤见 [业务模块恢复说明](app/docs/module-recovery.md)。
+
+### 上传后开始演示
+
+1. 登录平台，进入素材上传中心，选择模块对应的权重分类并上传可信 `.pt`；文件名由页面自动处理。
+2. 点击“检查并试运行模型”。确认成功后，再进入对应模块上传或选择巡检视频；需要定位时添加对应字幕。
+3. 外墙新版工作台使用“上传外墙任务”创建账号绑定任务。可由授权账号添加单类别 YOLO ONNX，或使用素材中心已安装的 PT 权重。
+4. 在外墙工作台勾选“边播放边检测”并播放视频可预览检测框；“开始检测”生成完整分析记录，之后可复核、派单与导出。
+
+外墙模型上传账号由 `UAV_WALL_ADMINS` 指定。Docker 部署在 `deploy/.env` 中配置已注册的管理员账号，修改后重新创建容器使配置生效；本地启动则设置同名环境变量。完整外墙流程见 [外墙巡检说明](app/docs/wall-inspection.md)。
+逐帧预览按服务器处理能力抽帧，不保证与视频帧率一致。测试样片与测试模型仅用于验证链路；业务效果需使用对应训练权重和现场视频验收。
 
 ## 粉黛花三维漫游
 
@@ -196,7 +221,7 @@ python app/scripts/install_fendai_scene.py
 
 ```
 POST /api/v1/assets/upload/init      # 声明文件 → 拿 uploadId / chunkSize / totalChunks
-                                      #（同名同大小直接命中「秒传」，不传数据）
+                                      #（未开启覆盖时，同名同大小跳过；不校验内容相同）
 GET  /api/v1/assets/upload/status    # 已收分片列表 → 断点续传的依据
 POST /api/v1/assets/upload/chunk     # 逐片上传（幂等，重试安全）
 POST /api/v1/assets/upload/complete  # 分片齐全+总大小校验后原子合并落盘
@@ -221,11 +246,17 @@ UAV_DATA_DIR=$(mktemp -d) python -m unittest discover -s tests -p test_uav_asset
 # 分片上传（全流程/断点续传/秒传/竞态去重/参数校验/废弃清理）
 UAV_DATA_DIR=$(mktemp -d) python -m unittest discover -s tests -p test_uav_assets_chunked.py
 
+# 实际 ONNX 推理、视频转码与无字幕任务（需 ffmpeg / ffprobe）
+python -m unittest discover -s tests -p test_upload_inference_pipeline.py
+
+# 六模块 PT 试运行（需已安装推理依赖；生成未训练权重，仅验证链路）
+UAV_TEST_PT=1 python -m unittest discover -s tests -p test_pt_runtime.py
+
 # 前端类型检查 + 构建
 cd ../uav-inspection-ui && npm run build
 ```
 
-> 两套测试请**分开 pattern 跑**：它们都会切换 `UAV_DATA_DIR` 并 import 应用，`deployment_paths` 的模块级路径会被先到者冻结，混跑会互相污染（详见测试文件头注释）。
+> 后端各套测试请**按文件分别启动进程**：它们会切换 `UAV_DATA_DIR` 并 import 应用，`deployment_paths` 的模块级路径会被先到者冻结，混跑会互相污染（详见测试文件头注释）。
 
 ## 📚 更多文档
 
