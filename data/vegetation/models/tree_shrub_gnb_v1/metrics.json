@@ -1,0 +1,122 @@
+{
+  "model": "diagonal_gaussian_naive_bayes",
+  "source": "C:\\Users\\DL-X17R2\\Documents\\xunjian\\point\\data\\trees_original - label.txt",
+  "split": {
+    "train_tree_ids": "1-7",
+    "validation_tree_ids": "8-10",
+    "train_shrub_id": 1,
+    "validation_shrub_id": 2
+  },
+  "sample_counts": {
+    "train": {
+      "other": {
+        "available": 4166753,
+        "sampled": 120000
+      },
+      "tree": {
+        "available": 2736428,
+        "sampled": 120000
+      },
+      "shrub": {
+        "available": 295328,
+        "sampled": 120000
+      }
+    },
+    "val": {
+      "other": {
+        "available": 476507,
+        "sampled": 60000
+      },
+      "tree": {
+        "available": 149773,
+        "sampled": 60000
+      },
+      "shrub": {
+        "available": 42359,
+        "sampled": 42359
+      }
+    }
+  },
+  "train_metrics": {
+    "accuracy": 0.8605555555555555,
+    "macro_f1": 0.8596993541131042,
+    "classes": {
+      "other": {
+        "precision": 0.84146065483249,
+        "recall": 0.7746416666666667,
+        "f1": 0.8066698196302354,
+        "support": 120000
+      },
+      "tree": {
+        "precision": 0.902056548918191,
+        "recall": 0.9127083333333333,
+        "f1": 0.9073511807370649,
+        "support": 120000
+      },
+      "shrub": {
+        "precision": 0.8376888972149369,
+        "recall": 0.8943166666666666,
+        "f1": 0.8650770619720125,
+        "support": 120000
+      }
+    },
+    "confusion_matrix": [
+      [
+        92957,
+        9181,
+        17862
+      ],
+      [
+        7543,
+        109525,
+        2932
+      ],
+      [
+        9971,
+        2711,
+        107318
+      ]
+    ]
+  },
+  "validation_metrics": {
+    "accuracy": 0.7433896488645533,
+    "macro_f1": 0.7515332912393659,
+    "classes": {
+      "other": {
+        "precision": 0.6867284455941582,
+        "recall": 0.6990666666666666,
+        "f1": 0.6928426303705049,
+        "support": 60000
+      },
+      "tree": {
+        "precision": 0.7548110677059893,
+        "recall": 0.6988166666666666,
+        "f1": 0.7257354022968611,
+        "support": 60000
+      },
+      "shrub": {
+        "precision": 0.8051911134435407,
+        "recall": 0.8693075851649,
+        "f1": 0.8360218410507316,
+        "support": 42359
+      }
+    },
+    "confusion_matrix": [
+      [
+        41944,
+        11387,
+        6669
+      ],
+      [
+        15831,
+        41929,
+        2240
+      ],
+      [
+        3303,
+        2233,
+        36823
+      ]
+    ]
+  }
+}

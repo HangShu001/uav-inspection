@@ -190,6 +190,22 @@ python app/deploy.py start
 外墙模型上传账号由 `UAV_WALL_ADMINS` 指定。Docker 部署在 `deploy/.env` 中配置已注册的管理员账号，修改后重新创建容器使配置生效；本地启动则设置同名环境变量。完整外墙流程见 [外墙巡检说明](app/docs/wall-inspection.md)。
 逐帧预览按服务器处理能力抽帧，不保证与视频帧率一致。测试样片与测试模型仅用于验证链路；业务效果需使用对应训练权重和现场视频验收。
 
+## 乔木高度与绿化面积测量数据
+
+仓库随附 5 个地块的运行数据：网页点云、917 棵候选乔木的高度结果、
+绿化面积结果、预览图及两个轻量模型，共约 66.17 MiB，位于 `data/vegetation/`。
+从仓库根目录执行以下命令，即可离线安装到程序实际读取的数据目录：
+
+```bash
+python app/scripts/install_vegetation_data.py
+```
+
+默认安装到仓库根目录的 `02-data/`；已有相同文件自动跳过，不同内容默认拒绝覆盖。
+外置数据目录使用 `--data-dir`，与服务的 `UAV_DATA_DIR` 保持一致。
+安装后刷新 `/height` 和 `/area` 页面。
+服务器 Docker 数据卷的安装命令、SHA-256 校验和数据范围见
+[测量数据安装说明](app/docs/vegetation-data.md)。
+
 ## 粉黛花三维漫游
 
 首页“数字园区治理”中的“粉黛花三维漫游”进入 `/fendai-flower`。

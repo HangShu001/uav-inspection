@@ -1,0 +1,3 @@
+# Preserve the exact bytes recorded in the vegetation SHA-256 manifest.
+# CRLF in the original data is intentional and participates in its checksums.
+data/vegetation/** -text whitespace=cr-at-eol

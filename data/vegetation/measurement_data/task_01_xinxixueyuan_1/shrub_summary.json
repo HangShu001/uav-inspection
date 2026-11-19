@@ -1,0 +1,10 @@
+{
+  "point_count": 19325,
+  "occupied_cells": 2247,
+  "resolution_m": 0.25,
+  "area_m2": 140.44,
+  "patch_count": 48,
+  "largest_patch_m2": 30.0,
+  "mean_height_m": 0.83,
+  "method": "classification-4 occupied XY grid"
+}
