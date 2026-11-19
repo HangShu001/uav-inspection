@@ -1,0 +1,196 @@
+{
+  "source": {
+    "map_dir": "map_20261114_190944",
+    "frames_used": 291,
+    "cell_m": 0.15,
+    "grid": [
+      213,
+      147
+    ],
+    "rect": [
+      -13.7,
+      13.7,
+      -9.2,
+      9.2
+    ],
+    "note": "分母 = 贴墙矩形扣除 7 辆车体遮挡区；观测帧数按帧-格去重"
+  },
+  "area": {
+    "site_cells": 22509,
+    "car_cells": 3048,
+    "observable_cells": 19461
+  },
+  "coverage": [
+    {
+      "min_frames": 1,
+      "cells": 19167,
+      "ratio": 98.49
+    },
+    {
+      "min_frames": 3,
+      "cells": 18631,
+      "ratio": 95.74
+    },
+    {
+      "min_frames": 10,
+      "cells": 11927,
+      "ratio": 61.29
+    }
+  ],
+  "depth": {
+    "frames_p50": 11,
+    "frames_p95": 23,
+    "dist_p50": 2.03,
+    "dist_p95": 4.43,
+    "pts_p50": 37
+  },
+  "rows": [
+    {
+      "label": "左排",
+      "x": -8.28,
+      "cells": 5106,
+      "ge1": 99.6,
+      "ge3": 98.5,
+      "median_frames": 15
+    },
+    {
+      "label": "中排",
+      "x": 0.0,
+      "cells": 5945,
+      "ge1": 100.0,
+      "ge3": 100.0,
+      "median_frames": 18
+    },
+    {
+      "label": "右排",
+      "x": 8.28,
+      "cells": 5506,
+      "ge1": 99.6,
+      "ge3": 97.2,
+      "median_frames": 11
+    }
+  ],
+  "slots": [
+    {
+      "name": "slot_0",
+      "x": 8.28,
+      "y": -5.0,
+      "frames": 4,
+      "points": 25,
+      "min_dist": 1.08
+    },
+    {
+      "name": "slot_1",
+      "x": 8.28,
+      "y": -2.5,
+      "frames": 11,
+      "points": 28,
+      "min_dist": 2.16
+    },
+    {
+      "name": "slot_2",
+      "x": 8.28,
+      "y": 0.0,
+      "frames": 18,
+      "points": 36,
+      "min_dist": 2.42
+    },
+    {
+      "name": "slot_3",
+      "x": 8.28,
+      "y": 2.5,
+      "frames": 10,
+      "points": 17,
+      "min_dist": 2.41
+    },
+    {
+      "name": "slot_4",
+      "x": 8.28,
+      "y": 5.0,
+      "frames": 22,
+      "points": 57,
+      "min_dist": 1.5
+    },
+    {
+      "name": "slot_5",
+      "x": 0.0,
+      "y": -5.0,
+      "frames": 16,
+      "points": 38,
+      "min_dist": 1.94
+    },
+    {
+      "name": "slot_6",
+      "x": 0.0,
+      "y": -2.5,
+      "frames": 9,
+      "points": 60,
+      "min_dist": 1.08
+    },
+    {
+      "name": "slot_7",
+      "x": 0.0,
+      "y": 0.0,
+      "frames": 30,
+      "points": 102,
+      "min_dist": 1.65
+    },
+    {
+      "name": "slot_8",
+      "x": 0.0,
+      "y": 2.5,
+      "frames": 30,
+      "points": 81,
+      "min_dist": 1.43
+    },
+    {
+      "name": "slot_9",
+      "x": 0.0,
+      "y": 5.0,
+      "frames": 7,
+      "points": 14,
+      "min_dist": 1.57
+    },
+    {
+      "name": "slot_10",
+      "x": -8.28,
+      "y": -5.0,
+      "frames": 11,
+      "points": 183,
+      "min_dist": 0.7
+    },
+    {
+      "name": "slot_11",
+      "x": -8.28,
+      "y": -2.5,
+      "frames": 25,
+      "points": 81,
+      "min_dist": 1.51
+    },
+    {
+      "name": "slot_12",
+      "x": -8.28,
+      "y": 0.0,
+      "frames": 5,
+      "points": 28,
+      "min_dist": 0.89
+    },
+    {
+      "name": "slot_13",
+      "x": -8.28,
+      "y": 2.5,
+      "frames": 21,
+      "points": 78,
+      "min_dist": 1.89
+    },
+    {
+      "name": "slot_14",
+      "x": -8.28,
+      "y": 5.0,
+      "frames": 9,
+      "points": 30,
+      "min_dist": 1.29
+    }
+  ],
+  "image": "/api/v1/plate/media/heatmap.png"
+}

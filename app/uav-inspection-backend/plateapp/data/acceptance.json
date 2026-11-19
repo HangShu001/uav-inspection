@@ -1,0 +1,227 @@
+{
+  "_说明": "v2.0 验收轮的离线结果回放。这批数据由无人机自主巡航 + 逐车精拍产生，与实时检测使用同一套检测/识别权重，区别是不需要现场重新跑飞行。",
+  "available": true,
+  "batch": {
+    "start": "2026-11-14 19:39:07",
+    "end": "2026-11-14 19:59:52",
+    "fsm": "DONE",
+    "exit_code": 0,
+    "batch_dir": "~/runs/p10_v2_final2_20261114"
+  },
+  "summary": [
+    {
+      "label": "拍成率 C_cap",
+      "value": "1.000",
+      "note": "清单 7 辆 / 拍成 7 辆 / 漏拍 0"
+    },
+    {
+      "label": "车辆认定",
+      "value": "7/7",
+      "note": "车牌与真值逐字一致"
+    },
+    {
+      "label": "违停判定",
+      "value": "7/7",
+      "note": "压线越界 4 辆 + 在框内 3 辆，与场景设计一致"
+    },
+    {
+      "label": "车位重建",
+      "value": "15/15",
+      "note": "命中真值 15 个 / 真值 15 个 / 漏 0"
+    },
+    {
+      "label": "车位中心误差",
+      "value": "mean 0.204 m",
+      "note": "max 0.269 m，按命中样本"
+    },
+    {
+      "label": "车心定位达标",
+      "value": "5/7",
+      "note": "门槛 0.17 m；5 辆达标、2 辆超门槛，超门槛来自 PnP 精度分布长尾"
+    },
+    {
+      "label": "飞行腿数",
+      "value": "39",
+      "note": "含重试与补拍轮"
+    },
+    {
+      "label": "全程墙钟",
+      "value": "1230 s",
+      "note": "预算 1800 s"
+    }
+  ],
+  "vehicles": [
+    {
+      "car": "car_0",
+      "real_car": "car_park_02",
+      "plate": "皖BXH618",
+      "confidence": 0.998,
+      "distance_m": 1.26,
+      "leg": "near",
+      "note": "第 1 遍被挡板遮挡三张全无效（conf 0.000），补拍轮成功",
+      "card": "car_0.jpg"
+    },
+    {
+      "car": "car_1",
+      "real_car": "car_park_01",
+      "plate": "皖AD11677",
+      "confidence": 0.999,
+      "distance_m": 3.67,
+      "leg": "far",
+      "note": "",
+      "card": "car_1.jpg"
+    },
+    {
+      "car": "car_2",
+      "real_car": "car_park_05",
+      "plate": "皖AS6V28",
+      "confidence": 0.999,
+      "distance_m": 3.67,
+      "leg": "far",
+      "note": "",
+      "card": "car_2.jpg"
+    },
+    {
+      "car": "car_3",
+      "real_car": "car_park_03",
+      "plate": "皖AD93598",
+      "confidence": 0.919,
+      "distance_m": 1.02,
+      "leg": "retry",
+      "note": "本轮最低置信度，新能源绿牌",
+      "card": "car_3.jpg"
+    },
+    {
+      "car": "car_4",
+      "real_car": "car_park_04",
+      "plate": "皖AD06989",
+      "confidence": 0.997,
+      "distance_m": 1.26,
+      "leg": "near",
+      "note": "",
+      "card": "car_4.jpg"
+    },
+    {
+      "car": "car_5",
+      "real_car": "car_park_06",
+      "plate": "皖AF18555",
+      "confidence": 0.98,
+      "distance_m": 3.67,
+      "leg": "far",
+      "note": "",
+      "card": "car_5.jpg"
+    },
+    {
+      "car": "car_6",
+      "real_car": "car_park_07",
+      "plate": "皖ACS122",
+      "confidence": 0.999,
+      "distance_m": 1.26,
+      "leg": "near",
+      "note": "",
+      "card": "car_6.jpg"
+    }
+  ],
+  "violations": [
+    {
+      "car": "car_0",
+      "real_car": "car_park_02",
+      "slot": "slot_3",
+      "lateral_m": -0.218,
+      "longitudinal_m": 0.187,
+      "margin_m": -0.368,
+      "shape_error_m": 0.011,
+      "verdict": "压线越界",
+      "truth": "越界"
+    },
+    {
+      "car": "car_1",
+      "real_car": "car_park_01",
+      "slot": "slot_0",
+      "lateral_m": -0.022,
+      "longitudinal_m": 0.169,
+      "margin_m": 0.2,
+      "shape_error_m": 0.006,
+      "verdict": "在框内",
+      "truth": "在框内"
+    },
+    {
+      "car": "car_2",
+      "real_car": "car_park_05",
+      "slot": "slot_10",
+      "lateral_m": 0.006,
+      "longitudinal_m": -0.243,
+      "margin_m": 0.154,
+      "shape_error_m": 0.012,
+      "verdict": "在框内",
+      "truth": "在框内"
+    },
+    {
+      "car": "car_3",
+      "real_car": "car_park_03",
+      "slot": "slot_6",
+      "lateral_m": -0.019,
+      "longitudinal_m": 0.259,
+      "margin_m": 0.135,
+      "shape_error_m": 0.018,
+      "verdict": "在框内",
+      "truth": "在框内"
+    },
+    {
+      "car": "car_4",
+      "real_car": "car_park_04",
+      "slot": "slot_9",
+      "lateral_m": 0.728,
+      "longitudinal_m": 0.17,
+      "margin_m": -0.448,
+      "shape_error_m": 0.005,
+      "verdict": "压线越界",
+      "truth": "越界"
+    },
+    {
+      "car": "car_5",
+      "real_car": "car_park_06",
+      "slot": "slot_12",
+      "lateral_m": 0.594,
+      "longitudinal_m": -0.236,
+      "margin_m": -0.256,
+      "shape_error_m": 0.002,
+      "verdict": "压线越界",
+      "truth": "越界"
+    },
+    {
+      "car": "car_6",
+      "real_car": "car_park_07",
+      "slot": "slot_14",
+      "lateral_m": -0.096,
+      "longitudinal_m": -0.256,
+      "margin_m": -0.313,
+      "shape_error_m": 0.012,
+      "verdict": "压线越界",
+      "truth": "越界"
+    }
+  ],
+  "reruns": [
+    {
+      "启动": "2026-11-14 12:23:33",
+      "墙钟_s": 1197,
+      "建图": 15
+    },
+    {
+      "启动": "2026-11-14 12:54:19",
+      "墙钟_s": 1262,
+      "建图": 14
+    },
+    {
+      "启动": "2026-11-14 17:13:54",
+      "墙钟_s": 1235,
+      "建图": 14
+    }
+  ],
+  "retry": {
+    "轮次": 2,
+    "触发": "第 1 轮 C_cap=0.857，car_0 被遮挡挡板挡住三张全无效",
+    "补拍": "car_0",
+    "结果": "C_cap 1.000"
+  }
+}

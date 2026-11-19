@@ -6,7 +6,7 @@ import DeploymentNotice from './components/common/DeploymentNotice.vue'
 const noticeVisible = ref(false)
 const route = useRoute()
 // These scenes show their own availability state and do not require inference packages.
-const showDeploymentNotice = computed(() => !['fendai-flower', 'pest-inspection'].includes(String(route.name)))
+const showDeploymentNotice = computed(() => !['fendai-flower', 'pest-inspection', 'vehicle-coverage'].includes(String(route.name)))
 
 watch([noticeVisible, showDeploymentNotice], ([visible, show]) => {
   document.body.classList.toggle('notice-visible', visible && show)

@@ -1,0 +1,217 @@
+{
+  "mission": {
+    "run": "p9_v2_final_20261114",
+    "id": "mission_20261114_190947",
+    "started_at": "2026-11-14 19:09:47",
+    "scenario": "parking_lot_green_cam.world · 15 车位 / 7 辆车",
+    "platform": "P450 / Gazebo 仿真",
+    "barrier": "car_0（0.60×0.60 挡板）"
+  },
+  "kpi": {
+    "final": "DONE",
+    "note": "C_cap=1.000 达标",
+    "c_cap": 1.0,
+    "n_cars": 7,
+    "n_captured": 7,
+    "missing": [],
+    "inspect_round": 3,
+    "rounds": [
+      {
+        "ok": true,
+        "rc": 0,
+        "run_dir": "/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_191632",
+        "cars": 7,
+        "captured": 6,
+        "new": 0,
+        "reason": "demo_mission rc=0"
+      },
+      {
+        "ok": false,
+        "rc": 4,
+        "run_dir": "/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_192701",
+        "cars": 1,
+        "captured": 0,
+        "new": 0,
+        "reason": "demo_mission rc=4"
+      },
+      {
+        "ok": true,
+        "rc": 0,
+        "run_dir": "/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_192850",
+        "cars": 1,
+        "captured": 1,
+        "new": 0,
+        "reason": "demo_mission rc=0"
+      }
+    ]
+  },
+  "budget": {
+    "wall_clock_s": 1319,
+    "elapsed_s": 1296,
+    "budget_s": 1800
+  },
+  "video": {
+    "src": "/api/v1/plate/media/replay.mp4",
+    "poster": "/api/v1/plate/media/poster.jpg",
+    "seconds": 1304.5,
+    "frames": 19568,
+    "fps": 15.0,
+    "size": "1280x720",
+    "offset_s": 29.5,
+    "note": "录屏晚于任务启动 29.5 s，视频时间 = 墙钟 − 29.5"
+  },
+  "phases": [
+    {
+      "key": "survey",
+      "label": "SURVEY 巡航发现",
+      "kind": "survey",
+      "t0": 0,
+      "t1": 402,
+      "seconds": 402,
+      "detail": "发现 7 条（402 s）",
+      "cover": "/api/v1/plate/media/cover_survey.jpg"
+    },
+    {
+      "key": "inspect_r1",
+      "label": "INSPECT 第 1 轮",
+      "kind": "inspect",
+      "t0": 403,
+      "t1": 1030,
+      "seconds": 627,
+      "detail": "拍成 6 辆",
+      "cover": "/api/v1/plate/media/cover_inspect_r1.jpg"
+    },
+    {
+      "key": "inspect_r2",
+      "label": "INSPECT 第 2 轮",
+      "kind": "inspect",
+      "t0": 1033,
+      "t1": 1140,
+      "seconds": 107,
+      "detail": "拍成 0 辆（rc=4）",
+      "cover": "/api/v1/plate/media/cover_inspect_r2.jpg"
+    },
+    {
+      "key": "inspect_r3",
+      "label": "INSPECT 第 3 轮",
+      "kind": "inspect",
+      "t0": 1142,
+      "t1": 1295,
+      "seconds": 153,
+      "detail": "拍成 1 辆",
+      "cover": "/api/v1/plate/media/cover_inspect_r3.jpg"
+    },
+    {
+      "key": "wrap",
+      "label": "收尾降落",
+      "kind": "wrap",
+      "t0": 1297,
+      "t1": 1319,
+      "seconds": 22,
+      "detail": "停 stage1、清场",
+      "cover": "/api/v1/plate/media/cover_wrap.jpg"
+    }
+  ],
+  "events": [
+    {
+      "t": 0,
+      "kind": "runner",
+      "text": "开始：日志 /home/amov/runs/mission_20261114_190947"
+    },
+    {
+      "t": 402,
+      "kind": "runner",
+      "text": "SURVEY 完成：发现 7 条（402s）→ /home/amov/uav_plate/code/uav_viewpoint_ws/src/uav_viewpoint/config/cruise_discovered.yaml"
+    },
+    {
+      "t": 402,
+      "kind": "fsm",
+      "text": "SURVEY    -> SCHEDULE  发现 7 条（新增 7，累计 7）"
+    },
+    {
+      "t": 402,
+      "kind": "fsm",
+      "text": "SCHEDULE  -> INSPECT   待拍 7 / 已拍成 0（不重排，遵 plan_fleet 排序裁定）"
+    },
+    {
+      "t": 403,
+      "kind": "runner",
+      "text": "遮挡法：spawn 挡板 plate_barrier（car_0）rc=0 ｜ /home/amov/runs/mission_20261114_190947/barrier_spawn.log"
+    },
+    {
+      "t": 403,
+      "kind": "runner",
+      "text": "INSPECT 第 1 轮：7 辆（car_0,car_1,car_2,car_3,car_4,car_5,car_6）"
+    },
+    {
+      "t": 1030,
+      "kind": "runner",
+      "text": "INSPECT 第 1 轮结束 rc=0（/home/amov/runs/mission_20261114_190947/mission_r1.log）"
+    },
+    {
+      "t": 1032,
+      "kind": "runner",
+      "text": "INSPECT 第 1 轮产物：/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_191632 ｜ 拍成 6 辆"
+    },
+    {
+      "t": 1032,
+      "kind": "fsm",
+      "text": "INSPECT   -> INSPECT   C_cap=0.857 < 1.00，重拍漏掉的 1 辆：car_0"
+    },
+    {
+      "t": 1033,
+      "kind": "runner",
+      "text": "遮挡法：delete 挡板 plate_barrier（car_0）rc=0 ｜ /home/amov/runs/mission_20261114_190947/barrier_delete.log"
+    },
+    {
+      "t": 1033,
+      "kind": "runner",
+      "text": "INSPECT 第 2 轮：1 辆（car_0）"
+    },
+    {
+      "t": 1140,
+      "kind": "runner",
+      "text": "INSPECT 第 2 轮结束 rc=4（/home/amov/runs/mission_20261114_190947/mission_r2.log）"
+    },
+    {
+      "t": 1141,
+      "kind": "runner",
+      "text": "INSPECT 第 2 轮产物：/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_192701 ｜ 拍成 0 辆"
+    },
+    {
+      "t": 1141,
+      "kind": "fsm",
+      "text": "INSPECT   -> INSPECT   本轮 rc=4（demo_mission rc=4），剩 1 轮预算，重拍漏掉的 1 辆"
+    },
+    {
+      "t": 1142,
+      "kind": "runner",
+      "text": "遮挡法：delete 挡板 plate_barrier（car_0）rc=0 ｜ /home/amov/runs/mission_20261114_190947/barrier_delete.log"
+    },
+    {
+      "t": 1142,
+      "kind": "runner",
+      "text": "INSPECT 第 3 轮：1 辆（car_0）"
+    },
+    {
+      "t": 1295,
+      "kind": "runner",
+      "text": "INSPECT 第 3 轮结束 rc=0（/home/amov/runs/mission_20261114_190947/mission_r3.log）"
+    },
+    {
+      "t": 1297,
+      "kind": "runner",
+      "text": "INSPECT 第 3 轮产物：/home/amov/uav_plate/data/ccpd_data/captures/run_20261114_192850 ｜ 拍成 1 辆"
+    },
+    {
+      "t": 1297,
+      "kind": "fsm",
+      "text": "INSPECT   -> DONE      C_cap=1.000 达标（7/7）"
+    },
+    {
+      "t": 1297,
+      "kind": "runner",
+      "text": "收尾：降落 + 停 stage1（elapsed 1296s）"
+    }
+  ]
+}
