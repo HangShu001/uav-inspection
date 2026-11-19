@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="无人机视点优化仿真回放、覆盖评估与选点耗时诊断">
+  <title>无人机视点优化平台</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="assets/recorded-run.js"></script>
+  <script defer src="assets/rviz-cloud-data.js"></script>
+  <script defer src="rviz-cloud.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#home">无人机视点优化平台</a>
+      <nav aria-label="主导航">
+        <a href="#home">首页</a><a id="module-link" href="#workbench" hidden>车辆覆盖率检测</a>
+      </nav>
+      <span class="mode"><i></i> 仿真数据</span>
+    </div>
+  </header>
+  <main>
+    <section class="view portal" id="home" aria-label="功能模块">
+      <article class="panel module-group blue">
+        <h2>无人机巡检</h2>
+        <a class="module-card" href="#workbench"><span class="module-meta"><span class="module-icon" aria-hidden="true">⌖</span>车辆表面巡检<br>视点覆盖评估</span><span class="module-name"><strong>车辆覆盖率检测</strong><span>进入模块</span></span></a>
+      </article>
+    </section>
+    <section class="view" id="vehicle-module" aria-labelledby="module-title" hidden>
+      <div class="intro module-header">
+        <div class="module-heading"><a href="../" target="_top" class="module-home">← 低空智能巡检与决策平台</a><h1 id="module-title">车辆覆盖率检测</h1></div>
+        <div class="current-task"><span>当前任务</span><strong>SUV 视点优化仿真</strong></div>
+        <span class="module-mode">仿真回放</span>
+        <nav class="module-tabs" aria-label="车辆覆盖率检测">
+          <button class="tab playback-settings" id="settings-open" type="button">播放设置</button>
+          <a class="tab" href="#workbench">播放示例</a>
+          <a class="tab" href="#comparison">覆盖分析</a>
+          <a class="tab" href="#diagnostics">耗时诊断</a>
+          <a class="tab download-tab" href="assets/suv-recorded.mp4" download>下载视频</a>
+        </nav>
+      </div>
+      <dialog class="settings-dialog panel" id="playback-settings">
+        <form method="dialog">
+          <div class="panel-head"><h2>播放设置</h2><button class="tab" value="close">关闭</button></div>
+          <label for="playback-rate">播放速度 <output id="playback-rate-value">1.0×</output></label>
+          <input id="playback-rate" type="range" min="0.5" max="2" step="0.1" value="1">
+        </form>
+      </dialog>
+      <section class="module-view" id="workbench" aria-label="巡检演示">
+      <div class="replay-switch mobile-switch" id="mobile-switch" role="group" aria-label="工作台分区">
+        <button class="tab" type="button" data-view="media" aria-pressed="true">巡检画面</button>
+        <button class="tab" type="button" data-view="status" aria-pressed="false">状态与点云</button>
+        <button class="tab" type="button" data-view="route" aria-pressed="false">视点轨迹</button>
+      </div>
+      <div class="workspace" id="replay" data-mobile-view="media">
+        <article class="panel replay-panel">
+          <h2 class="task-video-title">任务视频</h2>
+          <div class="panel-head media-head">
+            <div class="replay-switch" id="media-switch" role="group" aria-label="巡检画面源">
+              <button class="tab" type="button" data-view="flight" aria-controls="flight-view" aria-pressed="true">Gazebo 飞行</button>
+              <button class="tab" type="button" data-view="camera" aria-controls="camera-view" aria-pressed="false">机载相机</button>
+            </div>
+            <span class="chip" id="replay-length"></span>
+          </div>
+          <video id="replay-video" hidden playsinline preload="auto" src="assets/suv-recorded.mp4"></video>
+          <div class="media-viewport" id="flight-view">
+            <canvas id="flight-frame" width="658" height="600" aria-label="Gazebo 飞行实录"></canvas>
+            <figure class="camera-inset" id="camera-inset" hidden>
+              <figcaption>D435i 机载视频</figcaption>
+              <canvas id="camera-inset-frame" width="320" height="240" aria-label="同步机载相机画面"></canvas>
+            </figure>
+          </div>
+          <div class="media-viewport camera-view" id="camera-view" hidden>
+            <canvas id="camera-video-frame" width="640" height="480" aria-label="与 Gazebo 同步的 D435i 机载录像" hidden></canvas>
+            <img id="camera-frame" alt="当前视点的机载 RGB 原图" hidden>
+            <p id="camera-placeholder">拍摄完成后显示机载原图</p>
+            <span class="chip camera-info" id="camera-info">等待首个视点拍摄</span>
+          </div>
+          <div class="replay-controls">
+            <button id="replay-play" type="button" class="tab" title="播放视频" aria-label="播放视频">▶</button>
+            <button id="replay-restart" type="button" class="tab" title="重新播放" aria-label="重新播放">↺</button>
+            <span id="replay-time">0:00 / 0:45</span>
+            <input id="replay-position" type="range" min="0" max="45" step="0.01" value="0" aria-label="视频进度">
+          </div>
+          <p class="replay-error" id="replay-error" role="status"></p>
+        </article>
+        <article class="panel tracking-panel">
+          <div class="panel-head status-head"><h2>任务概览</h2><p id="replay-phase">等待覆盖回放</p></div>
+          <div class="tracking-metrics">
+            <div><span>累计覆盖率</span><strong id="replay-coverage">—</strong><p id="replay-count"></p></div>
+            <div><span>有效观测</span><strong id="replay-observations">—</strong></div>
+            <div><span>当前视点 ID</span><strong id="replay-viewpoint">—</strong></div>
+            <div><span>本次新增覆盖</span><strong id="replay-gain">—</strong></div>
+          </div>
+          <progress id="replay-progress" max="2956" value="0" aria-label="车辆覆盖点"></progress>
+          <h2 class="cloud-title">RViz 点云</h2>
+          <figure class="rviz-panel inspection-figure" id="cloud-view">
+            <img id="rviz-frame" src="assets/observations/rviz-0.png" alt="当前视点的 RViz 覆盖点云">
+            <canvas id="rviz-cloud" width="480" height="360" tabindex="0" aria-label="车辆三维覆盖点云和视点轨迹，方向键旋转，加减键缩放" hidden></canvas>
+            <div class="cloud-controls" id="cloud-controls" hidden>
+              <small>拖动旋转 · 滚轮或双指缩放</small>
+              <div class="cloud-actions">
+                <button type="button" class="tab" id="cloud-route-toggle" aria-pressed="true">视点轨迹</button>
+                <button type="button" class="tab" id="cloud-reset">复位</button>
+              </div>
+            </div>
+            <figcaption class="cloud-legend">
+              <span class="covered">已覆盖</span><span class="uncovered">待覆盖</span>
+              <span class="cloud-photo-key" hidden>实拍轨迹</span><span class="cloud-planned-key" hidden>规划视点</span>
+            </figcaption>
+          </figure>
+        </article>
+        <aside class="panel route-panel">
+          <div class="panel-head route-heading"><h2>视点轨迹</h2><span class="chip">俯视图</span></div>
+          <figure class="replay-route inspection-figure" id="route-view">
+            <canvas id="trajectory-frame" width="560" height="430" aria-label="视点俯视图，点击编号或下方视点按钮回放"></canvas>
+            <figcaption class="route-caption" id="route-caption">点击编号跳转到拍摄画面</figcaption>
+          </figure>
+          <details class="viewpoint-list" open>
+            <summary>视点列表<span class="chip" id="viewpoint-count"></span></summary>
+            <div class="replay-views" id="replay-views" aria-label="跳转到已拍摄视点"></div>
+          </details>
+        </aside>
+      </div>
+    </section>
+    <section class="module-view" id="comparison" aria-label="覆盖分析" hidden>
+        <aside class="panel run-summary">
+          <div class="panel-head"><div><h2>本轮记录</h2><p>2026 年 11 月 16 日 · SUV 场景</p></div><span class="chip">Gazebo SITL</span></div>
+          <div class="overview">
+            <article class="metric"><span>任务结束覆盖率</span><strong id="summary-coverage"></strong><p id="summary-points"></p></article>
+            <article class="metric"><span>未覆盖表面点</span><strong id="summary-remaining"></strong></article>
+            <article class="metric"><span>覆盖阶段耗时</span><strong id="summary-time"></strong></article>
+            <article class="metric"><span>仿真机型</span><strong>P450</strong><p>D435i 深度相机</p></article>
+          </div>
+        </aside>
+      <article class="panel data-panel trend-panel">
+        <div class="panel-head">
+          <div><h2>SUV 巡检累计覆盖率</h2><p id="trend-summary"></p></div>
+          <a class="tab" href="#replay">返回回放</a>
+        </div>
+        <div class="analysis-charts">
+          <canvas id="coverage-trend" aria-label="SUV 累计覆盖率折线图，横轴为有效观测次数">各视点覆盖率见下表。</canvas>
+          <figure class="path-figure">
+            <canvas id="analysis-route" width="560" height="430" aria-label="本轮机载拍摄位置的俯视图"></canvas>
+            <figcaption>机载拍摄位置连线 · 世界坐标（米）</figcaption>
+          </figure>
+        </div>
+        <div class="table-scroll"><table><thead><tr><th scope="col">观测</th><th scope="col">视点 ID</th><th scope="col">新增点</th><th scope="col">累计点</th><th scope="col">累计覆盖率</th><th scope="col">回放</th></tr></thead><tbody id="trend-table"></tbody></table></div>
+      </article>
+    </section>
+    <section class="module-view" id="diagnostics" aria-label="耗时诊断" hidden>
+      <div class="workspace">
+        <article class="panel data-panel">
+          <div class="panel-head"><div><h2>本次回放分段耗时</h2><p>根据同一轮仿真的原始日志计时 · 单位为秒</p></div><span id="round-total" class="chip" hidden></span></div>
+          <div id="rounds" class="tabs" aria-label="选点轮次"></div>
+          <div id="time-bars" class="bars" aria-live="polite"></div>
+          <p class="muted" id="diagnostics-empty" hidden>这轮回放暂无分段耗时记录。</p>
+        </article>
+        <aside class="panel result-panel"><div class="panel-head"><div><h2>覆盖任务总耗时</h2><p>仿真原始运行时间</p></div></div><div class="big-gain" id="diagnostics-elapsed"></div><p class="muted" id="diagnostics-result"></p></aside>
+      </div>
+    </section>
+    </section>
+    <footer><span>无人机视点优化 · 研究工作台</span><span>仿真回放与历史实验记录</span></footer>
+  </main>
+</body>
+</html>

@@ -17,9 +17,14 @@ const DigitalRoseGardenView = () => import('../views/DigitalRoseGardenView.vue')
 const VegetationMeasurementView = () => import('../views/VegetationMeasurementView.vue')
 const FendaiFlowerWalkthroughView = () => import('../views/FendaiFlowerWalkthroughView.vue')
 
+const VehicleCoverageView = () => import('../views/VehicleCoverageView.vue')
+const PlateInspectionView = () => import('../views/PlateInspectionView.vue')
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    { path: '/plate', name: 'plate', component: PlateInspectionView },
+    { path: '/vehicle-coverage', name: 'vehicle-coverage', component: VehicleCoverageView },
     { path: '/', name: 'home', component: HomeView },
     { path: '/telecom', name: 'telecom', component: TelecomInspectionView },
     { path: '/assets', name: 'assets', component: AssetsUploadView },
