@@ -1,0 +1,306 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "measurement_data/pointcloud_web/task_01_xinxixueyuan_1/scene.json",
+      "bytes": 828,
+      "sha256": "b7e67bfab26db932704789a0bc903637b52483afcac5f4f170130998caaf1541"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_01_xinxixueyuan_1/scene.ply",
+      "bytes": 12363275,
+      "sha256": "8f15a38fc71e9acbd6110dd52f0c2e9d8be96cb5673eb254875a806a05e4cb07"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_02_xinxixueyuan_2/scene.json",
+      "bytes": 826,
+      "sha256": "1c371b26ce0fb207aaaa6b8c6393d1eab8f9b39a5f53cdfeb2d90cc75f53e299"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_02_xinxixueyuan_2/scene.ply",
+      "bytes": 13464185,
+      "sha256": "0a515b83986c651388c37b625d567712bf6702889f7cfe94d365ef6d7e0231d7"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_03_meiguiyuan_2/scene.json",
+      "bytes": 830,
+      "sha256": "91ffc5f284a9a95bf5aa91c4bbd7abe3e9755f0a4035bb9104c0454510f67768"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_03_meiguiyuan_2/scene.ply",
+      "bytes": 13458245,
+      "sha256": "64e885e758cdda9fd861a42d3a8f145496dcfd93d7257713bcd5bcdebd4ebac8"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_04_meiguiyuan_1/scene.json",
+      "bytes": 838,
+      "sha256": "e33ad77b0ec0b883e5b1fb82681970b9906a82abfda6cfbf1de7aeaef57e1c26"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_04_meiguiyuan_1/scene.ply",
+      "bytes": 13486445,
+      "sha256": "0a36b36fefcb5fc0ab2938957ccc980e2762244c5c96eacd3332384b5f0ffce2"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_05_meiguiyuan_3/scene.json",
+      "bytes": 825,
+      "sha256": "78a62313c521c65962b3cf0e43134415b0898c3b204681a0319b12d0572663f7"
+    },
+    {
+      "path": "measurement_data/pointcloud_web/task_05_meiguiyuan_3/scene.ply",
+      "bytes": 13154645,
+      "sha256": "c31dc3fc1796fb07d3cf4b481bac53542759f38042d1bf787c5999535e85d0b3"
+    },
+    {
+      "path": "measurement_data/task_01_xinxixueyuan_1/green_area_mask.png",
+      "bytes": 30122,
+      "sha256": "12067314880999f44f3a09cc930112eec53c106761e54ffa95252750a7648312"
+    },
+    {
+      "path": "measurement_data/task_01_xinxixueyuan_1/green_area_overview.jpg",
+      "bytes": 344594,
+      "sha256": "66c0b133607920136855768cdc59f5ce7bb370924d8f024e1bf63d70192b0b2d"
+    },
+    {
+      "path": "measurement_data/task_01_xinxixueyuan_1/green_area_summary.json",
+      "bytes": 751,
+      "sha256": "7a4145e2e399646ad0bcc3c3bb235b13069896ea4dab6d77819a9cde0ce2022a"
+    },
+    {
+      "path": "measurement_data/task_01_xinxixueyuan_1/shrub_overview.png",
+      "bytes": 17828,
+      "sha256": "7f857b9d0ebfebd3ffc6ee5a13b88d368018e12cf146fff4ce1dd0aa0662964b"
+    },
+    {
+      "path": "measurement_data/task_01_xinxixueyuan_1/shrub_summary.json",
+      "bytes": 229,
+      "sha256": "d2de361d11ed823c193703791d2730010b2b724fd8a7728f7dc4e9020f9d916b"
+    },
+    {
+      "path": "measurement_data/task_02_xinxixueyuan_2/green_area_mask.png",
+      "bytes": 46153,
+      "sha256": "27f08af91b8769dea68caf065543adbb899b95c05a2989bc540b1905e53b8314"
+    },
+    {
+      "path": "measurement_data/task_02_xinxixueyuan_2/green_area_overview.jpg",
+      "bytes": 280590,
+      "sha256": "11316e9819e4dc430b8f42dc2f253497b439a91a36542935cb15f2da4e3f2551"
+    },
+    {
+      "path": "measurement_data/task_02_xinxixueyuan_2/green_area_summary.json",
+      "bytes": 752,
+      "sha256": "86343ced48dcbca1192b1599dff88269b49b6e8625f998df723ab39daa3704d1"
+    },
+    {
+      "path": "measurement_data/task_02_xinxixueyuan_2/shrub_overview.png",
+      "bytes": 15068,
+      "sha256": "b1fc108aa8f8b3622fd11e8c569782077557dc667a01e7a0d3c39ce38d567ca7"
+    },
+    {
+      "path": "measurement_data/task_02_xinxixueyuan_2/shrub_summary.json",
+      "bytes": 233,
+      "sha256": "5ce16999a3ccf75014230ba2148181e786e122cf63d3f632deb68ec00e782284"
+    },
+    {
+      "path": "measurement_data/task_03_meiguiyuan_2/green_area_mask.png",
+      "bytes": 78927,
+      "sha256": "3624ab49aaf59ac4b2ffdec5095858aa44efb0d62b334bab07b67c70096d84a4"
+    },
+    {
+      "path": "measurement_data/task_03_meiguiyuan_2/green_area_overview.jpg",
+      "bytes": 343479,
+      "sha256": "f0fa966a34f711b78881c17e94d6c97ab849eff45a48b4bd30695664b9a69c28"
+    },
+    {
+      "path": "measurement_data/task_03_meiguiyuan_2/green_area_summary.json",
+      "bytes": 753,
+      "sha256": "3a60dcb23c9c1043c0099e43c4bc7ae89323c15ff1b03d4342bb8877ec5fc3f4"
+    },
+    {
+      "path": "measurement_data/task_03_meiguiyuan_2/shrub_overview.png",
+      "bytes": 17047,
+      "sha256": "20166cf1242e8d3b984639df0fb41567ecd81032a5607e2d9381449f83f49343"
+    },
+    {
+      "path": "measurement_data/task_03_meiguiyuan_2/shrub_summary.json",
+      "bytes": 231,
+      "sha256": "4ffe461219644ec3716e81e28a93cb0a1d4a677cf33322964e964e595fea5d21"
+    },
+    {
+      "path": "measurement_data/task_04_meiguiyuan_1/green_area_mask.png",
+      "bytes": 845313,
+      "sha256": "20cb9b22c8b9065bead392fe27729acbb6e563314edd4044be92e83102bbcfcb"
+    },
+    {
+      "path": "measurement_data/task_04_meiguiyuan_1/green_area_overview.jpg",
+      "bytes": 413834,
+      "sha256": "cc65bd28b1226fa1d67a1adf0e57c760afd0e2ee1e0bc7c8ac947d60b2f29339"
+    },
+    {
+      "path": "measurement_data/task_04_meiguiyuan_1/green_area_summary.json",
+      "bytes": 760,
+      "sha256": "a1776fd8dbf7f1893016c2f46cec1e84061aaadc181a95534299688427eb29e1"
+    },
+    {
+      "path": "measurement_data/task_04_meiguiyuan_1/shrub_overview.png",
+      "bytes": 34074,
+      "sha256": "6684ec520f3682269e8717184eb28f1b9f35447ee185b59174850c1576f3f09c"
+    },
+    {
+      "path": "measurement_data/task_04_meiguiyuan_1/shrub_summary.json",
+      "bytes": 234,
+      "sha256": "1d35967cb1c5c8760f8236f666a1d1fd956700aa6da4123e6d3028c3adff8f43"
+    },
+    {
+      "path": "measurement_data/task_05_meiguiyuan_3/green_area_mask.png",
+      "bytes": 118260,
+      "sha256": "f00e9ecc6a5025b72b9dac8b11241c3ae7faadaeac933948a4dc30be1a843c0c"
+    },
+    {
+      "path": "measurement_data/task_05_meiguiyuan_3/green_area_overview.jpg",
+      "bytes": 425144,
+      "sha256": "f1e8dbe9185025b7f7ccfcd6a7bb0536403dfac13b411ee1d90312d39ef4e9b0"
+    },
+    {
+      "path": "measurement_data/task_05_meiguiyuan_3/green_area_summary.json",
+      "bytes": 750,
+      "sha256": "9d37f318bc223eeb22fb8e15e4c5a00ce34dc5be47f03a1316ac6ce1e2e75698"
+    },
+    {
+      "path": "measurement_data/task_05_meiguiyuan_3/shrub_overview.png",
+      "bytes": 21854,
+      "sha256": "6bc3ea95b10198c9ad653f049b47cb00945f62991b54e5e94bada09f30e9f904"
+    },
+    {
+      "path": "measurement_data/task_05_meiguiyuan_3/shrub_summary.json",
+      "bytes": 233,
+      "sha256": "565165f73050d90a55001dc931940e83b6a47b248d7f4688f80a0a24f6e59b89"
+    },
+    {
+      "path": "models/green_area_gnb_v1/confusion_matrix.png",
+      "bytes": 14620,
+      "sha256": "71c754ad87bacc6adf5ac016e951e9847d7145cdc644371304c44b1a72337314"
+    },
+    {
+      "path": "models/green_area_gnb_v1/metrics.json",
+      "bytes": 10517,
+      "sha256": "9e72cd8ca7cc58f7092c7b245a985b8308127eae12375347e8086681ea6256ea"
+    },
+    {
+      "path": "models/green_area_gnb_v1/model.json",
+      "bytes": 1342,
+      "sha256": "b31989576b010728573b4aabd04f3cd48d010bed124752b3b8d82aafe0ea26ad"
+    },
+    {
+      "path": "models/green_area_gnb_v1/model.npz",
+      "bytes": 1812,
+      "sha256": "37ccd5e1f9909c7e76b5217eb1d5f3b81e438c5a30ed5560603378f77c9ebbda"
+    },
+    {
+      "path": "models/green_area_gnb_v1/training_report.md",
+      "bytes": 1575,
+      "sha256": "f6d15127bf855910ff28d3f8fcc6e9b885aebbedd7099220c4fcc59412c7c40a"
+    },
+    {
+      "path": "models/tree_shrub_gnb_v1/confusion_matrix.png",
+      "bytes": 11093,
+      "sha256": "fe8a5909469192396c9739d231570f2829156c360d3ceaf998af0f4d4bf52410"
+    },
+    {
+      "path": "models/tree_shrub_gnb_v1/metrics.json",
+      "bytes": 2593,
+      "sha256": "d339ac430c69376f5f69f64d39bfeb6094743503c394721ec32d42a83285bc8b"
+    },
+    {
+      "path": "models/tree_shrub_gnb_v1/model.npz",
+      "bytes": 1957,
+      "sha256": "dea8780185d4beb76c8429f562e9b9719423f159649b11513602a312fc6a0dbf"
+    },
+    {
+      "path": "models/tree_shrub_gnb_v1/training_report.md",
+      "bytes": 727,
+      "sha256": "d6f5435db6731504216f37ea0b1e7e0125706d75e910ca11739a4c0b69b7cbe1"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/README.md",
+      "bytes": 936,
+      "sha256": "916a3c69024314f3f3475443160cfb12e13eb542343255d4da370ffed79f3dd6"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_01_xinxixueyuan_1/summary.json",
+      "bytes": 472,
+      "sha256": "f3c3812741bb5e9aab7dffaf4b79858a59f45a1e3f1534add78dec50a46b02d5"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_01_xinxixueyuan_1/tree_instances.csv",
+      "bytes": 3290,
+      "sha256": "b30cb02f334278f4f04014d92e0ffc306e568389f1294f2675bf528c6f5c65f3"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_01_xinxixueyuan_1/tree_instances_overview.png",
+      "bytes": 26377,
+      "sha256": "1c01cd997f877701571cd3422318fb09be7f8bfc4ceb54ed9c69c074ad80fdd3"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_02_xinxixueyuan_2/summary.json",
+      "bytes": 474,
+      "sha256": "345e55543804ce027af8580f043a27b6165fa4fdfe3aa16490a782d2b6c085bd"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_02_xinxixueyuan_2/tree_instances.csv",
+      "bytes": 9414,
+      "sha256": "41c6fe845ada155de589f4274471a14339456809e1da544d8f49fcfd14cb6ad7"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_02_xinxixueyuan_2/tree_instances_overview.png",
+      "bytes": 56461,
+      "sha256": "b783686836dfd38f3662ddb0d07495fbf870007cc6860b709978f90146f2d55d"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_03_meiguiyuan_2/summary.json",
+      "bytes": 468,
+      "sha256": "8f612ef42c89769013e1a9b9d6d07b2a3bfa1990225d853c56fb6754a39f881a"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_03_meiguiyuan_2/tree_instances.csv",
+      "bytes": 9111,
+      "sha256": "f87791d636b584158fae9a73c4b5a08c30747ff65f9b1766c60a411da2830f78"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_03_meiguiyuan_2/tree_instances_overview.png",
+      "bytes": 35412,
+      "sha256": "cc5fee0a6ea85234224e8c559c648d5730a82996d0064ebe4e0d8d90f427f657"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_04_meiguiyuan_1/summary.json",
+      "bytes": 475,
+      "sha256": "00c050ef1b8a29bd35cac77bf9572c3a9efe06c72704883e7db2919006f81eac"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_04_meiguiyuan_1/tree_instances.csv",
+      "bytes": 66872,
+      "sha256": "810b1cf1a377ed55315d4a63eef7259cd96198b9210e270f0320451c47dc3c4a"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_04_meiguiyuan_1/tree_instances_overview.png",
+      "bytes": 59139,
+      "sha256": "6d3ece7043858283d65270714afaaa3efe0deb911fa9cde9d55f7d6fe2c30617"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_05_meiguiyuan_3/summary.json",
+      "bytes": 472,
+      "sha256": "1135b8dca6658332399645a987def7555e72992307a7d14b6da1fcf0bf27edfb"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_05_meiguiyuan_3/tree_instances.csv",
+      "bytes": 17448,
+      "sha256": "26a9eb1e12752a97614ff9e8345848705799527bde054157288965c3ef8e7cfe"
+    },
+    {
+      "path": "prelabel_output/instances_20260715/task_05_meiguiyuan_3/tree_instances_overview.png",
+      "bytes": 78483,
+      "sha256": "3fef6bac9457a41b1dd3d32fb36c188fc1fad0c228e1abf5f1357be49d22f6ce"
+    }
+  ],
+  "total_bytes": 69379695
+}

@@ -1,0 +1,37 @@
+{
+  "task_key": "task_04_meiguiyuan_1",
+  "source_file": "webodm_downloads/test_20260715/task_04_meiguiyuan_1/pointcloud.laz",
+  "source_points": 12137591,
+  "display_points": 449541,
+  "decimation_step": 27,
+  "epsg": 32648,
+  "origin": {
+    "x": 281749.9545,
+    "y": 2748188.1215000004,
+    "z": 1927.5853885000001
+  },
+  "source_bounds": {
+    "maxx": 281943.2067,
+    "maxy": 2748380.521,
+    "maxz": 1947.179688,
+    "minx": 281556.7023,
+    "miny": 2747995.722,
+    "minz": 1907.991089
+  },
+  "local_bounds": {
+    "minx": -193.25219999998808,
+    "maxx": 193.25219999998808,
+    "miny": -192.39950000029057,
+    "maxy": 192.3994999998249,
+    "minz": -19.594299500000034,
+    "maxz": 19.594299499999806
+  },
+  "dimensions": [
+    "X",
+    "Y",
+    "Z",
+    "Red",
+    "Green",
+    "Blue"
+  ]
+}

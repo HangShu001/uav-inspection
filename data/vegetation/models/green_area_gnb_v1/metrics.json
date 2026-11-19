@@ -1,0 +1,380 @@
+{
+  "model": "diagonal_gaussian_naive_bayes",
+  "version": "green_area_gnb_v1",
+  "features": [
+    "red_ratio",
+    "green_ratio",
+    "blue_ratio",
+    "excess_green",
+    "ngrdi",
+    "green_blue_index",
+    "brightness",
+    "saturation"
+  ],
+  "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715",
+  "label_manifest": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\training_data\\green_area_pseudolabels_v1\\manifest.json",
+  "split": "five-fold leave-one-task-out",
+  "sample_counts": {
+    "task_01_xinxixueyuan_1": {
+      "available": {
+        "other": 476358,
+        "green": 323307
+      },
+      "sampled": {
+        "other": 80000,
+        "green": 80000
+      }
+    },
+    "task_02_xinxixueyuan_2": {
+      "available": {
+        "other": 509059,
+        "green": 782908
+      },
+      "sampled": {
+        "other": 80000,
+        "green": 80000
+      }
+    },
+    "task_03_meiguiyuan_2": {
+      "available": {
+        "other": 694370,
+        "green": 689896
+      },
+      "sampled": {
+        "other": 80000,
+        "green": 80000
+      }
+    },
+    "task_04_meiguiyuan_1": {
+      "available": {
+        "other": 442943,
+        "green": 1595339
+      },
+      "sampled": {
+        "other": 80000,
+        "green": 80000
+      }
+    },
+    "task_05_meiguiyuan_3": {
+      "available": {
+        "other": 537909,
+        "green": 1425610
+      },
+      "sampled": {
+        "other": 80000,
+        "green": 80000
+      }
+    }
+  },
+  "training_samples": 800000,
+  "validation_samples": 800000,
+  "train_metrics": {
+    "accuracy": 0.9024325,
+    "macro_f1": 0.902102890159693,
+    "classes": {
+      "other": {
+        "precision": 0.8605864432597106,
+        "recall": 0.9604575,
+        "f1": 0.9077833699581768,
+        "support": 400000
+      },
+      "green": {
+        "precision": 0.9552661349623848,
+        "recall": 0.8444075,
+        "f1": 0.8964224103612092,
+        "support": 400000
+      }
+    },
+    "confusion_matrix": [
+      [
+        384183,
+        15817
+      ],
+      [
+        62237,
+        337763
+      ]
+    ]
+  },
+  "validation_metrics": {
+    "accuracy": 0.88792375,
+    "macro_f1": 0.8876314076519356,
+    "classes": {
+      "other": {
+        "precision": 0.8520139290616032,
+        "recall": 0.93893,
+        "f1": 0.8933629081653892,
+        "support": 400000
+      },
+      "green": {
+        "precision": 0.9319923718314564,
+        "recall": 0.8369175,
+        "f1": 0.8818999071384821,
+        "support": 400000
+      }
+    },
+    "confusion_matrix": [
+      [
+        375572,
+        24428
+      ],
+      [
+        65233,
+        334767
+      ]
+    ]
+  },
+  "folds": [
+    {
+      "held_out_task": "task_01_xinxixueyuan_1",
+      "accuracy": 0.888425,
+      "macro_f1": 0.8882539429771802,
+      "classes": {
+        "other": {
+          "precision": 0.9213995117982099,
+          "recall": 0.8493,
+          "f1": 0.8838818784961624,
+          "support": 80000
+        },
+        "green": {
+          "precision": 0.8602364943194992,
+          "recall": 0.92755,
+          "f1": 0.892626007458198,
+          "support": 80000
+        }
+      },
+      "confusion_matrix": [
+        [
+          67944,
+          12056
+        ],
+        [
+          5796,
+          74204
+        ]
+      ]
+    },
+    {
+      "held_out_task": "task_02_xinxixueyuan_2",
+      "accuracy": 0.940275,
+      "macro_f1": 0.9402738956643308,
+      "classes": {
+        "other": {
+          "precision": 0.9365209200872496,
+          "recall": 0.944575,
+          "f1": 0.9405307179129743,
+          "support": 80000
+        },
+        "green": {
+          "precision": 0.9440942102077869,
+          "recall": 0.935975,
+          "f1": 0.9400170734156874,
+          "support": 80000
+        }
+      },
+      "confusion_matrix": [
+        [
+          75566,
+          4434
+        ],
+        [
+          5122,
+          74878
+        ]
+      ]
+    },
+    {
+      "held_out_task": "task_03_meiguiyuan_2",
+      "accuracy": 0.83394375,
+      "macro_f1": 0.8329169276054267,
+      "classes": {
+        "other": {
+          "precision": 0.7886820180888884,
+          "recall": 0.9123375,
+          "f1": 0.8460151962119589,
+          "support": 80000
+        },
+        "green": {
+          "precision": 0.8960374757252768,
+          "recall": 0.75555,
+          "f1": 0.8198186589988946,
+          "support": 80000
+        }
+      },
+      "confusion_matrix": [
+        [
+          72987,
+          7013
+        ],
+        [
+          19556,
+          60444
+        ]
+      ]
+    },
+    {
+      "held_out_task": "task_04_meiguiyuan_1",
+      "accuracy": 0.87676875,
+      "macro_f1": 0.8751639440700456,
+      "classes": {
+        "other": {
+          "precision": 0.8071244434028592,
+          "recall": 0.99015,
+          "f1": 0.8893180121364537,
+          "support": 80000
+        },
+        "green": {
+          "precision": 0.9872613524305275,
+          "recall": 0.7633875,
+          "f1": 0.8610098760036374,
+          "support": 80000
+        }
+      },
+      "confusion_matrix": [
+        [
+          79212,
+          788
+        ],
+        [
+          18929,
+          61071
+        ]
+      ]
+    },
+    {
+      "held_out_task": "task_05_meiguiyuan_3",
+      "accuracy": 0.90020625,
+      "macro_f1": 0.8992369160241902,
+      "classes": {
+        "other": {
+          "precision": 0.8345751517874871,
+          "recall": 0.9982875,
+          "f1": 0.9091198852543926,
+          "support": 80000
+        },
+        "green": {
+          "precision": 0.9978695942898906,
+          "recall": 0.802125,
+          "f1": 0.8893539467939878,
+          "support": 80000
+        }
+      },
+      "confusion_matrix": [
+        [
+          79863,
+          137
+        ],
+        [
+          15830,
+          64170
+        ]
+      ]
+    }
+  ],
+  "inference": {
+    "probability_threshold": 0.65,
+    "minimum_patch_area_m2": 0.5
+  },
+  "task_results": {
+    "task_01_xinxixueyuan_1": {
+      "model": "green_area_gnb_v1",
+      "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_01_xinxixueyuan_1\\orthophoto.tif",
+      "image_width": 1202,
+      "image_height": 1367,
+      "valid_pixels": 1242995,
+      "green_pixels": 374444,
+      "pixel_size_x_m": 0.049992324635440705,
+      "pixel_size_y_m": 0.04997233609957096,
+      "pixel_area_m2": 0.002498233249081104,
+      "area_m2": 935.45,
+      "valid_area_m2": 3105.29,
+      "coverage_ratio": 0.30124336783333805,
+      "patch_count": 63,
+      "largest_patch_m2": 403.43,
+      "mean_confidence": 0.9704568031394479,
+      "probability_threshold": 0.65,
+      "minimum_patch_area_m2": 0.5,
+      "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+    },
+    "task_02_xinxixueyuan_2": {
+      "model": "green_area_gnb_v1",
+      "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_02_xinxixueyuan_2\\orthophoto.tif",
+      "image_width": 2060,
+      "image_height": 2097,
+      "valid_pixels": 2498163,
+      "green_pixels": 1107750,
+      "pixel_size_x_m": 0.04998622543615904,
+      "pixel_size_y_m": 0.04999588815780498,
+      "pixel_area_m2": 0.002499105736337034,
+      "area_m2": 2768.38,
+      "valid_area_m2": 6243.17,
+      "coverage_ratio": 0.4434258292993692,
+      "patch_count": 36,
+      "largest_patch_m2": 1642.32,
+      "mean_confidence": 0.9851571803971003,
+      "probability_threshold": 0.65,
+      "minimum_patch_area_m2": 0.5,
+      "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+    },
+    "task_03_meiguiyuan_2": {
+      "model": "green_area_gnb_v1",
+      "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_03_meiguiyuan_2\\orthophoto.tif",
+      "image_width": 2069,
+      "image_height": 2965,
+      "valid_pixels": 4856902,
+      "green_pixels": 1162035,
+      "pixel_size_x_m": 0.05000000000000562,
+      "pixel_size_y_m": 0.04999364877738448,
+      "pixel_area_m2": 0.002499682438869505,
+      "area_m2": 2904.72,
+      "valid_area_m2": 12140.71,
+      "coverage_ratio": 0.23925436420170718,
+      "patch_count": 215,
+      "largest_patch_m2": 1436.78,
+      "mean_confidence": 0.9600531505384979,
+      "probability_threshold": 0.65,
+      "minimum_patch_area_m2": 0.5,
+      "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+    },
+    "task_04_meiguiyuan_1": {
+      "model": "green_area_gnb_v1",
+      "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_04_meiguiyuan_1\\orthophoto.tif",
+      "image_width": 7647,
+      "image_height": 7535,
+      "valid_pixels": 43633379,
+      "green_pixels": 21516487,
+      "pixel_size_x_m": 0.04999611736542431,
+      "pixel_size_y_m": 0.049998700675846885,
+      "pixel_area_m2": 0.0024997409071083605,
+      "area_m2": 53785.64,
+      "valid_area_m2": 109072.14,
+      "coverage_ratio": 0.4931198887897268,
+      "patch_count": 1130,
+      "largest_patch_m2": 33501.84,
+      "mean_confidence": 0.9544542952862258,
+      "probability_threshold": 0.65,
+      "minimum_patch_area_m2": 0.5,
+      "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+    },
+    "task_05_meiguiyuan_3": {
+      "model": "green_area_gnb_v1",
+      "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_05_meiguiyuan_3\\orthophoto.tif",
+      "image_width": 2384,
+      "image_height": 2350,
+      "valid_pixels": 4022119,
+      "green_pixels": 1821618,
+      "pixel_size_x_m": 0.04999624934383815,
+      "pixel_size_y_m": 0.04998834162455131,
+      "pixel_area_m2": 0.002499229592146031,
+      "area_m2": 4552.64,
+      "valid_area_m2": 10052.2,
+      "coverage_ratio": 0.4529000758058128,
+      "patch_count": 207,
+      "largest_patch_m2": 1464.7,
+      "mean_confidence": 0.9653586981869331,
+      "probability_threshold": 0.65,
+      "minimum_patch_area_m2": 0.5,
+      "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+    }
+  }
+}

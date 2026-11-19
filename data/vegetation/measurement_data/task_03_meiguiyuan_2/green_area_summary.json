@@ -1,0 +1,20 @@
+{
+  "model": "green_area_gnb_v1",
+  "source": "C:\\Users\\DL-X17R2\\Desktop\\drone-j\\demo2-jiao\\webodm_downloads\\test_20260715\\task_03_meiguiyuan_2\\orthophoto.tif",
+  "image_width": 2069,
+  "image_height": 2965,
+  "valid_pixels": 4856902,
+  "green_pixels": 1162035,
+  "pixel_size_x_m": 0.05000000000000562,
+  "pixel_size_y_m": 0.04999364877738448,
+  "pixel_area_m2": 0.002499682438869505,
+  "area_m2": 2904.72,
+  "valid_area_m2": 12140.71,
+  "coverage_ratio": 0.23925436420170718,
+  "patch_count": 215,
+  "largest_patch_m2": 1436.78,
+  "mean_confidence": 0.9600531505384979,
+  "probability_threshold": 0.65,
+  "minimum_patch_area_m2": 0.5,
+  "method": "orthophoto RGB GaussianNB segmentation with GeoTIFF pixel-area conversion"
+}

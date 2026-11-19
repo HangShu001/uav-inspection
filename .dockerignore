@@ -4,6 +4,8 @@
 **/__pycache__
 **/.venv*
 app/02-data
+02-data
+data/vegetation
 app/delivery
 app/uav-inspection-backend/fendaidata
 

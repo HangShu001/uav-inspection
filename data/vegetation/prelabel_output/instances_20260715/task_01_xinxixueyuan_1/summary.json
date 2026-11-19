@@ -1,0 +1,16 @@
+{
+  "source_points": 415188,
+  "candidate_peaks": 71,
+  "retained_instances": 28,
+  "assigned_points": 408267,
+  "unassigned_points": 6921,
+  "parameters": {
+    "input": "prelabel_output\\instances_20260715\\task_01_xinxixueyuan_1\\tree_candidates.csv",
+    "output_dir": "prelabel_output\\instances_20260715\\task_01_xinxixueyuan_1",
+    "grid_size": 0.25,
+    "min_height": 2.5,
+    "min_distance": 4.0,
+    "max_radius": 8.0,
+    "min_points": 500
+  }
+}
