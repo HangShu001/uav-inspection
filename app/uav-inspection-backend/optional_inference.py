@@ -50,8 +50,8 @@ def load_yolo_model(path: Path | str) -> Any:
         ) from exc
     try:
         model = YOLO(str(model_path))
-        if model.task not in {'detect', 'segment'}:
-            raise ValueError('需要 YOLO 目标检测或实例分割权重，当前模型任务为 ' + str(model.task))
+        if model.task not in {'detect', 'segment', 'obb'}:
+            raise ValueError('需要 YOLO 目标检测、实例分割或旋转框权重，当前模型任务为 ' + str(model.task))
         return model
     except Exception as exc:
         raise InferenceUnavailableError(
