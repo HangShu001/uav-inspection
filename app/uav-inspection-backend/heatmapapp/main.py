@@ -50,6 +50,11 @@ PLATE_CARDS_PATH = backend_path('platedata', 'cards')
 ROSE_PICTURES_PATH = project_path('uav-inspection-ui', 'public', 'rose-pictures')
 FRONTEND_DIST = Path(os.getenv('UAV_FRONTEND_DIST', str(PROJECT_ROOT / 'uav-inspection-ui' / 'dist'))).resolve()
 
+# 入口页不给缓存指令时，浏览器会按启发式规则沿用旧 index.html，
+# 前端重新构建后刷新仍看到旧页面（2026-11-20 踩过：dist 已换、页面不变）。
+# 带 hash 的 assets 可以长缓存，入口页必须每次回源校验。
+NO_CACHE_HEADERS = {'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache'}
+
 for path in [VIDEO_PATH, SNAPSHOT_PATH, PEST_MEDIA_PATH, ROSE_TASKS_PATH, TELECOM_MEDIA_PATH, TELECOM_TASKS_PATH, ROOF_MEDIA_PATH, ROOF_REPORTS_PATH, POWER_MEDIA_PATH, WALL_MEDIA_PATH, PRUNING_MEDIA_PATH, PLATE_MEDIA_PATH, PLATE_CARDS_PATH, ROSE_PICTURES_PATH]:
     os.makedirs(path, exist_ok=True)
 
@@ -94,7 +99,7 @@ app.include_router(ws_telemetry.router, prefix='/ws/v1', tags=['遥测数据流'
 @app.get('/')
 async def root():
     if (FRONTEND_DIST / 'index.html').is_file():
-        return FileResponse(FRONTEND_DIST / 'index.html')
+        return FileResponse(FRONTEND_DIST / 'index.html', headers=NO_CACHE_HEADERS)
     return {'status': 'running', 'api_docs': '/docs'}
 
 
@@ -162,5 +167,5 @@ async def frontend(path: str):
     spa_routes = {'telecom', 'pest', 'heatmap-flow', 'power', 'roof', 'wall', 'pruning',
                   'height', 'area', 'rose-digital', 'rose-yield', 'assets', 'fendai-flower', 'plate'}
     if path.strip('/') in spa_routes and (FRONTEND_DIST / 'index.html').is_file():
-        return FileResponse(FRONTEND_DIST / 'index.html')
+        return FileResponse(FRONTEND_DIST / 'index.html', headers=NO_CACHE_HEADERS)
     raise HTTPException(status_code=404, detail='页面或文件不存在；首次部署请先运行 setup。')

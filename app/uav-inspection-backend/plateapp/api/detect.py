@@ -29,7 +29,14 @@ CARDS_DIR = DATA_DIR / 'cards'
 # 媒体（回放视频、阶段封面、热力图）走 /api/v1/plate/media 静态挂载。
 TIMELINE_PATH = DATA_DIR / 'timeline.json'
 COVERAGE_PATH = DATA_DIR / 'coverage.json'
+# 2026-11-20：四宫格第四格由「全局建图」改成俯视路径图，
+# 数据从 mission_r1.log 与 stage2_r*.log 的 GOTO 序列重建，见 platedata/path.json 的 source 字段。
+# 同一天把它挪进 media/ 下（原 platedata/path.json）：这是给前端读的静态数据，放 media 里
+# 走既有的 /plate/media 静态挂载就能取到。这样即便后端进程是旧代码（没有 /plate/path 路由，
+# 用户双击「打开车牌巡检.bat」常驻的 8002 就是这种情况，uvicorn 没开 --reload 不会热更），
+# 前端 404 后回退到 /plate/media/path.json 仍能出图，不必为了一个路由重启服务。
 MEDIA_DIR = DATA_DIR / 'media'
+PATH_PATH = MEDIA_DIR / 'path.json'
 
 
 def _versioned(url: str, base_dir: Path) -> str:
@@ -313,6 +320,21 @@ async def plate_replay() -> dict[str, object] | JSONResponse:
         if phase.get('cover'):
             phase['cover'] = _media_versioned(prefixed(str(phase['cover'])))
 
+    return {'code': 200, 'message': 'success', 'data': payload}
+
+
+@router.get('/path', response_model=None)
+async def plate_path() -> dict[str, object] | JSONResponse:
+    """逐腿路径与视点：从任务日志的 GOTO 序列重建，供四宫格第四格画俯视路径图。
+
+    来源：~/runs/mission_20261116_120348 的 stage2_r1.log / stage2_r2.log / inspect_r*.yaml。
+    计算口径：front/* 视点按车轴方位前推 d 米复算平面位置；transit/* 平面取车坐标
+    （实际在车正上方，图上不体现高度）；FLEET 取场地中心。高度一律不画。
+    """
+    payload = _load_json_file(PATH_PATH)
+    if payload is None:
+        return JSONResponse(status_code=404, content={
+            'code': 404, 'message': '未找到路径数据', 'data': {'available': False}})
     return {'code': 200, 'message': 'success', 'data': payload}
 
 
