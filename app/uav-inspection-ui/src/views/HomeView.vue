@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { account, loadAccount, signOut } from '../stores/auth'
 import AccountDialog from '../components/common/AccountDialog.vue'
 import { moduleThemes, type ModuleThemeKey } from '../config/moduleThemes'
+import { plateApi } from '../api1/plate'
 import {
   Antenna,
   Zap,
@@ -17,7 +18,7 @@ import {
   LineChart,
   Users,
   Car,
-  HardDriveUpload, UserRound, LogIn, UserPlus, LogOut,
+  HardDriveUpload, UserRound, LogIn, UserPlus, LogOut, Film, Play,
 } from 'lucide-vue-next'
 
 const router = useRouter(), currentRoute = useRoute()
@@ -33,6 +34,19 @@ watch(()=>currentRoute.query.login,checkLoginQuery)
 onMounted(async()=>{try{await loadAccount()}catch(reason){accountError.value=reason instanceof Error?reason.message:'账号服务暂不可用'}checkLoginQuery()})
 const greeting = computed(()=>account.user?`欢迎回来，${account.user.username}`:'欢迎使用巡检平台')
 const accountHint = computed(()=>account.user||!account.authEnabled?'选择下方业务模块，开始本次作业。':'登录或注册账号，进入巡检业务工作台。')
+
+// 首页主入口：巡检过程回放。批次信息取不到时只显示静态说明，不阻塞首页。
+const lastRun = ref<{ start: string; fsm: string; cars: number } | null>(null)
+const lastRunText = computed(() => lastRun.value
+  ? `${lastRun.value.start} 起 · ${lastRun.value.fsm} · ${lastRun.value.cars} 辆车受检`
+  : '上一轮自主巡检的录屏、阶段时间轴与任务结果')
+onMounted(async () => {
+  try {
+    const res = await plateApi.getAcceptance()
+    const data = res.data
+    if (data?.available) lastRun.value = { start: data.batch.start, fsm: data.batch.fsm, cars: data.vehicles?.length ?? 0 }
+  } catch { /* 回放批次缺失不影响首页其它模块 */ }
+})
 
 const modules = [
   {
@@ -136,8 +150,8 @@ const modules = [
         desc: ['高斯模型', '第一人称漫游'],
       },
       {
-        name: '车辆车牌巡检',
-        path: '/plate',
+        name: '无人机车牌巡检',
+        path: '/plate?view=mission',
         theme: 'plate',
         icon: Car,
         desc: ['车牌识别', '违停判定'],
@@ -197,6 +211,15 @@ const handleNavigation = async (path: string) => {
         <div class="home-account-hint">默认账号：<strong>admin</strong><span></span>默认密码：<strong>admin123</strong></div>
         <p v-if="accountError" class="home-account-error" role="alert">{{ accountError }}</p>
       </section>
+      <section class="home-replay">
+        <div class="home-replay-icon"><Film :size="22" /></div>
+        <div class="home-replay-copy">
+          <h2>巡检过程</h2>
+          <p>{{ lastRunText }}</p>
+        </div>
+        <button class="home-replay-go" @click="router.push('/plate?view=mission')"><Play :size="14" />四路同步查看</button>
+      </section>
+
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-7">
         <section v-for="group in modules" :key="group.title" class="flex min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
           <div class="mb-4 flex items-center gap-3 sm:mb-7">
@@ -233,5 +256,14 @@ const handleNavigation = async (path: string) => {
 
 
 <style scoped>
+.home-replay{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px 20px;border:1px solid #e2e8f0;border-radius:10px;background:linear-gradient(96deg,#f7faff,#fff 58%);box-shadow:0 8px 24px -20px #0f172a45}
+.home-replay-icon{display:grid;place-items:center;height:44px;width:44px;border-radius:10px;background:#eef2ff;border:1px solid #e0e7ff;color:#4f46e5;flex-shrink:0}
+.home-replay-copy{flex:1;min-width:0}
+.home-replay-copy h2{font-size:16px;font-weight:700;color:#1e293b}
+.home-replay-copy p{margin-top:4px;font-size:12px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-replay-go{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:1px solid transparent;border-radius:8px;background:#4f46e5;color:#fff;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 6px 16px -10px #4f46e5}
+.home-replay-go:hover{background:#4338ca}
+@media(max-width:600px){.home-replay{flex-wrap:wrap;gap:12px;padding:14px}.home-replay-copy{flex:1 1 100%;order:3}.home-replay-go{width:100%;justify-content:center}}
+
 .home-account{background:white;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:25px;box-shadow:0 5px 20px -18px #0f172a40;padding:20px 24px;color:#475569}.home-account-main{display:flex;align-items:center;gap:14px}.home-account-avatar{height:48px;width:48px;display:grid;place-items:center;border:1px solid #dbeafe;background:linear-gradient(140deg,#eff6ff,#eef2ff);color:#4169d4;border-radius:12px;flex-shrink:0}.home-account-copy h2{font-size:16px;color:#1e293b;font-weight:650}.home-account-copy p{font-size:12px;color:#94a3b8;margin-top:6px}.home-account-actions{margin-left:auto;display:flex;gap:9px;align-items:center}.home-account-actions button{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;font-size:12px;font-weight:600;border:1px solid transparent;border-radius:6px;white-space:nowrap}.home-login{background:#315bd2;color:white;box-shadow:0 3px 8px #315bd21a}.home-login:hover{background:#254bb7}.home-account-actions button.home-register{background:white;color:#526785;border-color:#dce3ef}.home-account-actions button.home-register:hover{background:#f8fafc}.home-account-actions button:disabled{opacity:.5;cursor:not-allowed}.home-account-hint{display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;margin-top:16px;padding-top:13px}.home-account-hint strong{font-family:ui-monospace,monospace;color:#334155;font-weight:500;font-size:13px}.home-account-hint>span{height:10px;width:1px;background:#e2e8f0;margin:0 9px}.home-account-error{font-size:12px;color:#be123c;margin-top:12px;line-height:1.7}.home-guest{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px;font-weight:600;color:#526785;background:#f8fafc;border:1px solid #dce3ef;border-radius:6px}@media(max-width:600px){.home-account{padding:17px;margin-bottom:17px}.home-account-main{flex-wrap:wrap;gap:12px}.home-account-avatar{height:42px;width:42px}.home-account-copy h2{font-size:14px}.home-account-copy p{font-size:11px}.home-account-actions{margin-left:0;width:100%;padding-top:2px}.home-account-actions button{flex:1}.home-account-hint{gap:3px;font-size:10px}.home-account-hint strong{font-size:11px}.home-account-hint>span{margin:0 5px}}
 </style>
