@@ -189,6 +189,13 @@ const replayRun = computed(() => replay.value?.mission?.run ?? '')
 const batchMismatch = computed(
   () => Boolean(acceptanceRun.value && replayRun.value && acceptanceRun.value !== replayRun.value),
 )
+/** 顶栏的任务编号跟着当前视图走：结果页用验收批次、回放页用回放松批次，别把 p9 套在 p10 的结果上 */
+const viewRun = computed(() => {
+  const raw = activeTab.value === 'result'
+    ? (acceptanceRun.value || replayRun.value)
+    : (replayRun.value || acceptanceRun.value)
+  return (raw.split(/[\\/]/).filter(Boolean).pop() ?? '').slice(0, 22)
+})
 const statusText = computed(() => {
   if (online.value === false) return '服务未连接'
   if (loadingReplay.value || loadingCoverage.value) return '画面载入中'
@@ -372,6 +379,9 @@ const pathActive = computed(() => {
   const c = pathCursor.value
   return g && c >= 0 ? g.steps[c] : null
 })
+/** 第一个航点之前还在起飞准备，别显示成「第 0 步」 */
+const pathStepLabel = computed(() =>
+  pathCursor.value < 0 ? '待起飞' : `第 ${pathCursor.value + 1} 步`)
 
 /** 每 5 m 一条网格线，给俯视图一个尺度参照 */
 const pathGrid = computed(() => {
@@ -801,6 +811,36 @@ const resultPlain = computed(() => {
 })
 
 const coverageRviz = computed(() => coverage.value?.rviz ?? null)
+const rvizFallback = computed(() => Boolean(coverageRviz.value?.fallback))
+
+/**
+ * 默认演示批次没有 RViz 分屏录屏（那份 1920×1080 四宫格合成片只随实机数据交付），
+ * 后端会回退到主回放视频并打上 fallback 标记。此时**不能**再套 RV_SLOTS 的四象限
+ * 裁剪：坐标是按合成片量的，套在 854×480 的单幅俯视画面上只会把画面裁飞。
+ *
+ * 改成整幅铺满、两格各取不同局部（轻微放大 + 不同 object-position），既与主时钟
+ * 同步，又不会两格长得一模一样。真实 rviz 数据到位后自动回到原来的裁剪逻辑。
+ */
+function rvizStyle(index: 0 | 1, zoom: boolean) {
+  if (rvizFallback.value) {
+    const origin = index === 0 ? '28% center' : '72% center'
+    return {
+      position: 'absolute' as const,
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover' as const,
+      objectPosition: origin,
+      transform: zoom ? 'none' : 'scale(1.35)',
+      transformOrigin: origin,
+      maxWidth: 'none',
+      maxHeight: 'none',
+    }
+  }
+  return index === 0
+    ? (zoom ? onboardZoomStyle : onboardStyle)
+    : (zoom ? viewpointZoomStyle : viewpointStyle)
+}
 // 2026-11-21：「分排与车位」整块已删，coverageRows / coverageSlots 不再上屏，
 // 随之删掉（noUnusedLocals 会拦）。coverage 本身还要留着——四宫格第二、三格
 // 的 RViz 录屏 src 来自 coverage.rviz。
@@ -1022,11 +1062,11 @@ const ring = computed(() => {
           <div class="flex min-w-0 items-center gap-2">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="online ? 'bg-emerald-400' : 'bg-rose-400'"></span>
             <strong class="truncate text-[11.5px] font-semibold text-slate-100">{{ stageTitle }}</strong>
-            <span class="hidden truncate text-[9.5px] text-slate-500 sm:inline">任务编号 · {{ kpi.runShort || '未载入批次' }}</span>
+            <span class="hidden truncate text-[9.5px] text-slate-500 sm:inline">任务编号 · {{ viewRun || '未载入批次' }}</span>
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
-            <span v-if="batchMismatch" class="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300" :title="`巡检结果 ${acceptanceRun} / 回放 ${replayRun}`">批次不一致</span>
-            <span class="hidden rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-400 sm:inline">三路画面 + 飞行路线，进度同步</span>
+            <span v-if="batchMismatch" class="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300" :title="`检查结果来自 ${acceptanceRun}，过程回放来自 ${replayRun}；两份数据统计口径各自独立`">结果与回放分属不同批次</span>
+            <span class="hidden rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-400 sm:inline">{{ activeTab === 'result' ? '离线验收结果 · 车牌与违停判定' : '三路画面 + 飞行路线，进度同步' }}</span>
           </div>
         </div>
 
@@ -1185,8 +1225,8 @@ const ring = computed(() => {
                     <div v-if="zoomCell === 'onboard'" class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
                       <div class="flex min-w-0 items-center gap-2">
                         <span class="shrink-0 rounded bg-indigo-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">放大观看</span>
-                        <strong class="truncate text-[13px] font-semibold text-slate-100">机上视角</strong>
-                        <span class="hidden truncate text-[10px] text-slate-500 sm:inline">机载相机 · 进近与拍摄</span>
+                        <strong class="truncate text-[13px] font-semibold text-slate-100">{{ rvizFallback ? '俯视画面 · 左' : '机上视角' }}</strong>
+                        <span class="hidden truncate text-[10px] text-slate-500 sm:inline">{{ rvizFallback ? '全场俯视 · 同步回放' : '机载相机 · 进近与拍摄' }}</span>
                       </div>
                       <div class="flex shrink-0 items-center gap-1.5">
                         <PlaybackRateMenu v-model="playbackRate" />
@@ -1197,9 +1237,10 @@ const ring = computed(() => {
                     </div>
                     <div class="relative overflow-hidden" :class="zoomCell === 'onboard' ? 'min-h-0 flex-1' : 'aspect-[11/5]'">
                       <template v-if="coverageRviz">
-                        <video :ref="bindRviz(0)" :src="coverageRviz.src" class="absolute max-w-none" :style="zoomCell === 'onboard' ? onboardZoomStyle : onboardStyle" muted playsinline preload="metadata" />
+                        <video :ref="bindRviz(0)" :src="coverageRviz.src" class="absolute max-w-none" :style="rvizStyle(0, zoomCell === 'onboard')" muted playsinline preload="metadata" />
                       </template>
-                      <div v-else class="grid h-full place-items-center text-[11px] text-slate-500">RViz 录屏未载入</div>
+                      <div v-else class="grid h-full place-items-center text-[11px] text-slate-500">本批次未提供分屏录屏</div>
+                      <span v-if="rvizFallback && !zoomCell" class="pointer-events-none absolute left-1.5 top-1.5 z-10 rounded bg-slate-900/80 px-1.5 py-0.5 text-[9px] text-slate-400">同步回放 · 未提供分屏录屏</span>
                       <!-- 录屏比总览晚起的这一段，这一格冻在第 0 帧。盖一条说明，免得被当成卡死。 -->
                       <div v-if="rvizBeforeStart && coverageRviz && !zoomCell" class="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-slate-950/75">
                         <span class="rounded bg-slate-900/85 px-2 py-1 text-[10px] text-slate-400">RViz 录屏自第 {{ fmtTime(rvizOffset) }} 起</span>
@@ -1212,8 +1253,8 @@ const ring = computed(() => {
                       </div>
                     </div>
                     <figcaption v-if="zoomCell !== 'onboard'" class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-baseline justify-between gap-2 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent px-2.5 pb-1 pt-5">
-                      <span class="text-[11px] font-semibold text-slate-100">机上视角</span>
-                      <span class="text-[9px] text-slate-400">机载相机 · 进近与拍摄</span>
+                      <span class="text-[11px] font-semibold text-slate-100">{{ rvizFallback ? '俯视画面 · 左' : '机上视角' }}</span>
+                      <span class="text-[9px] text-slate-400">{{ rvizFallback ? '全场俯视 · 同步回放' : '机载相机 · 进近与拍摄' }}</span>
                     </figcaption>
                     <div v-if="zoomCell === 'onboard'" class="shrink-0 border-t border-slate-800 bg-slate-900 px-3 py-2">
                       <ReplayTransport dark :playing="playing" :current="videoTime" :duration="replay.video.seconds" @toggle="togglePlay" @seek="seekTo" />
@@ -1227,8 +1268,8 @@ const ring = computed(() => {
                     <div v-if="zoomCell === 'viewpoint'" class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 bg-slate-900 px-3 py-2">
                       <div class="flex min-w-0 items-center gap-2">
                         <span class="shrink-0 rounded bg-indigo-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">放大观看</span>
-                        <strong class="truncate text-[13px] font-semibold text-slate-100">拍照位置</strong>
-                        <span class="hidden truncate text-[10px] text-slate-500 sm:inline">点云俯视 · 全场</span>
+                        <strong class="truncate text-[13px] font-semibold text-slate-100">{{ rvizFallback ? '俯视画面 · 右' : '拍照位置' }}</strong>
+                        <span class="hidden truncate text-[10px] text-slate-500 sm:inline">{{ rvizFallback ? '全场俯视 · 同步回放' : '点云俯视 · 全场' }}</span>
                       </div>
                       <div class="flex shrink-0 items-center gap-1.5">
                         <PlaybackRateMenu v-model="playbackRate" />
@@ -1239,9 +1280,10 @@ const ring = computed(() => {
                     </div>
                     <div class="relative overflow-hidden" :class="zoomCell === 'viewpoint' ? 'min-h-0 flex-1' : 'aspect-[11/5]'">
                       <template v-if="coverageRviz">
-                        <video :ref="bindRviz(1)" :src="coverageRviz.src" class="absolute max-w-none" :style="zoomCell === 'viewpoint' ? viewpointZoomStyle : viewpointStyle" muted playsinline preload="metadata" />
+                        <video :ref="bindRviz(1)" :src="coverageRviz.src" class="absolute max-w-none" :style="rvizStyle(1, zoomCell === 'viewpoint')" muted playsinline preload="metadata" />
                       </template>
-                      <div v-else class="grid h-full place-items-center text-[11px] text-slate-500">RViz 录屏未载入</div>
+                      <div v-else class="grid h-full place-items-center text-[11px] text-slate-500">本批次未提供分屏录屏</div>
+                      <span v-if="rvizFallback && !zoomCell" class="pointer-events-none absolute left-1.5 top-1.5 z-10 rounded bg-slate-900/80 px-1.5 py-0.5 text-[9px] text-slate-400">同步回放 · 未提供分屏录屏</span>
                       <!-- 同上：录屏起点晚于总览时，这一格先冻住并说明 -->
                       <div v-if="rvizBeforeStart && coverageRviz && !zoomCell" class="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-slate-950/75">
                         <span class="rounded bg-slate-900/85 px-2 py-1 text-[10px] text-slate-400">RViz 录屏自第 {{ fmtTime(rvizOffset) }} 起</span>
@@ -1254,8 +1296,8 @@ const ring = computed(() => {
                       </div>
                     </div>
                     <figcaption v-if="zoomCell !== 'viewpoint'" class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-baseline justify-between gap-2 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent px-2.5 pb-1 pt-5">
-                      <span class="text-[11px] font-semibold text-slate-100">拍照位置</span>
-                      <span class="text-[9px] text-slate-400">点云俯视 · 全场</span>
+                      <span class="text-[11px] font-semibold text-slate-100">{{ rvizFallback ? '俯视画面 · 右' : '拍照位置' }}</span>
+                      <span class="text-[9px] text-slate-400">{{ rvizFallback ? '全场俯视 · 同步回放' : '点云俯视 · 全场' }}</span>
                     </figcaption>
                     <div v-if="zoomCell === 'viewpoint'" class="shrink-0 border-t border-slate-800 bg-slate-900 px-3 py-2">
                       <ReplayTransport dark :playing="playing" :current="videoTime" :duration="replay.video.seconds" @toggle="togglePlay" @seek="seekTo" />
@@ -1270,7 +1312,7 @@ const ring = computed(() => {
                       <div class="flex min-w-0 items-center gap-2">
                         <span class="shrink-0 rounded bg-indigo-600 px-1.5 py-0.5 text-[9px] font-semibold text-white">放大观看</span>
                         <strong class="truncate text-[13px] font-semibold text-slate-100">飞行路线</strong>
-                        <span v-if="pathGeom" class="hidden truncate text-[10px] text-slate-500 sm:inline">{{ pathGeom.steps.length }} 步 · 第 {{ pathCursor + 1 }} 步 · 青色为已飞航段</span>
+                        <span v-if="pathGeom" class="hidden truncate text-[10px] text-slate-500 sm:inline">{{ pathGeom.steps.length }} 步 · {{ pathStepLabel }} · 青色为已飞航段</span>
                       </div>
                       <div class="flex shrink-0 items-center gap-1.5">
                         <PlaybackRateMenu v-model="playbackRate" />
@@ -1322,7 +1364,7 @@ const ring = computed(() => {
                         </g>
                       </svg>
                       <div v-else class="grid h-full place-items-center text-[11px] text-slate-500">
-                        {{ loadingPath ? '正在载入路径…' : '路径数据未载入（/plate/path 与 media/path.json 均不可用）' }}
+                        {{ loadingPath ? '正在载入路径…' : '本批次未采集飞行日志，暂无路线可回放' }}
                       </div>
                       <div v-if="!zoomCell" class="absolute right-1.5 top-1.5 z-10 flex items-center gap-1">
                         <PlaybackRateMenu v-model="playbackRate" compact />
@@ -1334,7 +1376,7 @@ const ring = computed(() => {
                     <figcaption v-if="zoomCell !== 'path'" class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-baseline justify-between gap-2 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent px-2.5 pb-1 pt-5">
                       <span class="text-[11px] font-semibold text-slate-100">飞行路线</span>
                       <span class="text-[9px] text-slate-400">
-                        <template v-if="pathGeom">{{ pathGeom.steps.length }} 步 · 第 {{ pathCursor + 1 }} 步</template>
+                        <template v-if="pathGeom">{{ pathGeom.steps.length }} 步 · {{ pathStepLabel }}</template>
                         <template v-else>按日志 GOTO 序列复算</template>
                       </span>
                     </figcaption>

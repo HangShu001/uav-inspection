@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowRight, ChevronRight, ClipboardCheck, Clock3, FileDown, Film, FolderOpen, MapPin, Search, Wrench } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import WallWorkspaceHeader from '../components/wall/WallWorkspaceHeader.vue'
@@ -136,7 +136,12 @@ watch(selected, async item => {
     if (request === selectionRequest) detailLoading.value = false
   }
 }, { immediate: true })
-onMounted(load)
+onMounted(() => {
+  // 与巡检工作台共用整页视口锁定；离开页面时摘掉，避免影响首页等其他路由
+  document.body.classList.add('wall-workspace-active')
+  load()
+})
+onBeforeUnmount(() => document.body.classList.remove('wall-workspace-active'))
 </script>
 
 <template>
@@ -228,7 +233,7 @@ onMounted(load)
                 <div><strong>{{ detail.counts.completed }}</strong><span>已修复</span></div>
               </div>
               <div v-if="findings.length || logs.length" class="mt-4">
-                <h3 class="flex items-center gap-2 font-semibold"><ClipboardCheck :size="17" /> {{ selected.source === 'previous' ? '保存的检测日志' : '缺陷证据' }}</h3>
+                <h3 class="flex items-center gap-2 font-semibold"><ClipboardCheck :size="17" /> {{ selected.source === 'previous' ? '保存的检测日志' : '巡检记录' }}</h3>
                 <ul class="archive-evidence">
                   <li v-for="item in findings" :key="item.id">
                     <button :aria-pressed="evidenceId === item.id" @click="seek(item.evidence_time, item.id)">
@@ -242,9 +247,9 @@ onMounted(load)
                     </button>
                   </li>
                 </ul>
-                <img v-if="displayedEvidence" :src="displayedEvidence" alt="选中的缺陷截图" class="mt-3 max-h-72 w-full rounded-md bg-slate-100 object-contain" />
+                <img v-if="displayedEvidence" :src="displayedEvidence" alt="选中的巡检记录截图" class="mt-3 max-h-72 w-full rounded-md bg-slate-100 object-contain" />
               </div>
-              <p v-else-if="!detailLoading && !detailError" class="mt-3 text-sm text-slate-600">这项任务暂无可查看的缺陷证据。</p>
+              <p v-else-if="!detailLoading && !detailError" class="mt-3 text-sm text-slate-600">这项任务暂无可查看的巡检记录。</p>
               <div v-if="detail?.orders.length" class="mt-4">
                 <h3 class="flex items-center gap-2 font-semibold"><Wrench :size="17" /> 维修工单</h3>
                 <ul class="archive-evidence">

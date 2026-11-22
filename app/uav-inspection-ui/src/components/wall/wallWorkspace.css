@@ -99,3 +99,50 @@ body.wall-workspace-active .deployment-notice { display: none; }
   .wall-nav a { padding-inline: .4rem; }
   .wall-main { padding-block-start: .9rem; }
 }
+
+/* 历史任务 / 旧版录像工具页与工作台共用「整页锁视口」：
+   三个墙面页面切换时不再一会儿整页滚、一会儿不滚。
+   :not(.wall-workspace-shell) 把工作台排除，避免影响它自己的分区滚动。 */
+body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) > .wall-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block: .9rem 1.4rem;
+}
+body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) .archive-rows,
+body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) .archive-evidence {
+  max-height: none;
+}
+/* 录像预览随窗口高度自适应，与工作台一致铺满可用区域 */
+body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) .archive-media video {
+  height: clamp(200px, 34vh, 460px);
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: cover;
+}
+@media (max-width: 900px) {
+  body.wall-workspace-active .wall-shell:not(.wall-workspace-shell) .archive-media video {
+    height: clamp(180px, 28vh, 320px);
+  }
+}
+/* 旧版录像工具页原本只在 xl(>=1280px) 锁视口，窄屏仍是整页滚动，这里补齐 */
+body.wall-workspace-active .wall-tools-shell {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+body.wall-workspace-active .wall-tools-shell > main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
