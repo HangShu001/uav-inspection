@@ -146,3 +146,16 @@ body.wall-workspace-active .wall-tools-shell > main {
   min-height: 0;
   overflow-y: auto;
 }
+
+/* 铺满视口宽度：基类 .wall-header-inner / .wall-main 带 max-width:1480px 与
+   margin-inline:auto。根容器改成 flex 列之后，auto 外边距会在交叉轴上把内容区
+   压缩到内容宽度（1920 屏下主区仅约 1000px），看起来比改造前还窄。
+   在 wall-workspace-active 作用域内统一覆盖为满宽，只保留各自的内边距。
+   检测工具页用的是 Tailwind w-full，不命中这里的类名，本来就满宽。 */
+body.wall-workspace-active .wall-shell .wall-header-inner,
+body.wall-workspace-active .wall-shell .wall-main {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  box-sizing: border-box;
+}
