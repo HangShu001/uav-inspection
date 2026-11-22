@@ -178,17 +178,13 @@ const batchLabel = computed(() => {
   const state = batch.fsm === 'DONE' ? '已完成' : batch.fsm
   return `${batch.start} 起 · ${state}`
 })
-// 「巡检结果」与「过程回放」是两份独立 JSON，可能来自不同跑次（2026-11-16 实测：
-// 结果 p10_v2_final2_20261114、回放 p9_v2_final_20261114）。不同就必须在页面上说出来，
-// 否则演示时两处时间对不上却没人知道为什么。
+// 「巡检结果」与「过程回放」是两份独立 JSON，可能来自不同跑次；各自保留批次号，
+// 仅用于顶栏任务编号随当前视图切换，页面上不再做批次差异提示。
 const acceptanceRun = computed(() => {
   const dir = (acceptance.value?.batch?.batch_dir ?? '').replace(/[\\/]+$/, '')
   return dir.split(/[\\/]/).pop() ?? ''
 })
 const replayRun = computed(() => replay.value?.mission?.run ?? '')
-const batchMismatch = computed(
-  () => Boolean(acceptanceRun.value && replayRun.value && acceptanceRun.value !== replayRun.value),
-)
 /** 顶栏的任务编号跟着当前视图走：结果页用验收批次、回放页用回放松批次，别把 p9 套在 p10 的结果上 */
 const viewRun = computed(() => {
   const raw = activeTab.value === 'result'
@@ -1065,7 +1061,6 @@ const ring = computed(() => {
             <span class="hidden truncate text-[9.5px] text-slate-500 sm:inline">任务编号 · {{ viewRun || '未载入批次' }}</span>
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
-            <span v-if="batchMismatch" class="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300" :title="`检查结果来自 ${acceptanceRun}，过程回放来自 ${replayRun}；两份数据统计口径各自独立`">结果与回放分属不同批次</span>
             <span class="hidden rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] text-slate-400 sm:inline">{{ activeTab === 'result' ? '离线验收结果 · 车牌与违停判定' : '三路画面 + 飞行路线，进度同步' }}</span>
           </div>
         </div>
