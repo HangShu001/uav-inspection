@@ -141,7 +141,7 @@ const modules = [
         desc: ['车牌识别', '违停判定'],
       },
       {
-        name: '车辆覆盖率检测',
+        name: '车辆立体扫描',
         path: '/vehicle-coverage',
         theme: 'coverage',
         icon: CarFront,

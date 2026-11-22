@@ -7,7 +7,7 @@ const replayUrl = webPath('/vehicle-coverage-demo/index.html?v=analysis-overlay-
 <template>
   <iframe
     :src="replayUrl"
-    title="车辆覆盖率检测"
+    title="车辆立体扫描"
     class="block h-dvh w-full border-0"
   ></iframe>
 </template>
