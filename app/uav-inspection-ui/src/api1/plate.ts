@@ -190,6 +190,8 @@ export interface CoverageData {
     offset_s?: number
     /** 与覆盖质量同批次时为 true；不同批次前端要显式提示 */
     same_batch: boolean
+    /** 仓库自带批次没有 RViz 分屏录屏时，后端回退到主回放视频并置 true */
+    fallback?: boolean
   }
 }
 

@@ -109,6 +109,144 @@ def _load_json_file(path: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _fallback_rviz() -> dict[str, Any] | None:
+    """仓库自带批次没有 RViz 分屏录屏时，用主回放视频顶上。
+
+    前端第 2、3 格原本从 1920x1080 的四宫格合成片里各裁一个象限，那份文件只随
+    实机批次交付（见 docs/plate-replay.md），仓库里没有。缺了它两格会变成
+    「RViz 录屏未载入」，四宫格有半边是空的，看起来就像整个模块坏了。
+
+    这里退回 timeline.video 的同一段录屏：offset_s 与主时钟一致，前端检测到
+    fallback=true 后改用全幅取景、不再做四象限裁剪。带真实 rviz 段的批次
+    永远走原路径，不受影响。
+    """
+    timeline = _load_json_file(TIMELINE_PATH)
+    if not timeline:
+        return None
+    video = timeline.get('video') or {}
+    src = str(video.get('src') or '')
+    if not src:
+        return None
+    size = str(video.get('size') or '1280x720')
+    try:
+        width, height = (int(part) for part in size.lower().split('x', 1))
+    except (ValueError, AttributeError):
+        width, height = 1280, 720
+    return {
+        'src': src,
+        'poster': '',
+        'seconds': float(video.get('seconds') or 0),
+        'width': width,
+        'height': height,
+        'fps': float(video.get('fps') or 15),
+        'run': str((timeline.get('mission') or {}).get('run') or ''),
+        'note': '本批次未单独采集 RViz 分屏录屏，这里同步回放全场俯视画面；'
+                '接入实机批次后会自动换成机载相机与点云视角。',
+        'offset_s': float(video.get('offset_s') or 0),
+        'same_batch': True,
+        'fallback': True,
+    }
+
+
+def _fallback_path() -> dict[str, Any] | None:
+    """仓库自带批次没有 GOTO 日志时，从车位与阶段时间轴重建一条示意航线。
+
+    path.json 由 scripts/onsite/gen_path_json.py 在实机上从 stage2_r*.log 生成，
+    同样不随仓库交付。缺了它第四格只剩一句「路径数据未载入」，而且前端会连打
+    两个 404（/plate/path 与 /plate/media/path.json）。
+
+    这里用 coverage.slots（15 个车位实测坐标）、acceptance.violations（车→车位
+    映射）与 timeline.phases（各阶段墙钟区间）拼一条随播放推进的示意路径：
+    巡航阶段走弓字形扫描点，逐车拍摄阶段在每辆车旁落一个视点，收尾回场地中心。
+    t 用墙钟秒，和前端 pathNow = videoTime + video.offset_s 同一条时间轴。
+    """
+    coverage = _load_json_file(COVERAGE_PATH)
+    timeline = _load_json_file(TIMELINE_PATH)
+    if not coverage or not timeline:
+        return None
+    phases = [p for p in (timeline.get('phases') or []) if isinstance(p, dict)]
+    if not phases:
+        return None
+    rect = (coverage.get('source') or {}).get('rect') or [-13.7, 13.7, -9.2, 9.2]
+    try:
+        x0, x1, y0, y1 = (float(v) for v in rect)
+    except (TypeError, ValueError):
+        x0, x1, y0, y1 = -13.7, 13.7, -9.2, 9.2
+    slots = {
+        str(s['name']): (float(s['x']), float(s['y']))
+        for s in (coverage.get('slots') or [])
+        if isinstance(s, dict) and 'name' in s and 'x' in s and 'y' in s
+    }
+    acceptance = _load_acceptance() or {}
+    plates = {
+        str(v.get('car')): str(v.get('plate') or '')
+        for v in (acceptance.get('vehicles') or []) if isinstance(v, dict)
+    }
+    cars: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in (acceptance.get('violations') or []):
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('car') or '')
+        slot = str(item.get('slot') or '')
+        if not name or name in seen or slot not in slots:
+            continue
+        seen.add(name)
+        cx, cy = slots[slot]
+        cars.append({'name': name, 'x': cx, 'y': cy, 'yaw': 0.0, 'plate': plates.get(name, '')})
+    if not cars:
+        return None
+
+    steps: list[dict[str, Any]] = []
+
+    def add(t: float, car: str, leg: str, x: float, y: float, kind: str) -> None:
+        steps.append({
+            'i': len(steps) + 1, 't': round(float(t), 1),
+            'car': car, 'leg': leg, 'd': 0.0,
+            'x': round(float(x), 3), 'y': round(float(y), 3),
+            'yaw': 0.0, 'kind': kind,
+        })
+
+    # 阶段一：沿弓字形航线扫全场（4 行 × 2 个端点）
+    survey = phases[0]
+    s0, s1 = float(survey.get('t0') or 0), float(survey.get('t1') or 0)
+    rows = [-6.0, -2.0, 2.0, 6.0]
+    for r, y in enumerate(rows):
+        xs = (x0 + 2.5, x1 - 2.5) if r % 2 == 0 else (x1 - 2.5, x0 + 2.5)
+        for j, x in enumerate(xs):
+            add(s0 + (s1 - s0) * (r * 2 + j + 1) / (len(rows) * 2 + 1),
+                'FLEET', 'overview/all', x, y, 'overview')
+
+    # 逐车拍摄阶段：每轮在车旁落一个视点，轮次越靠后待拍的车越少
+    inspects = [p for p in phases[1:] if str(p.get('key') or '').startswith('inspect')]
+    if not inspects:
+        inspects = phases[1:-1] or phases[1:]
+    for k, phase in enumerate(inspects):
+        p0, p1 = float(phase.get('t0') or 0), float(phase.get('t1') or 0)
+        batch = cars if k == 0 else cars[: max(1, len(cars) // (k + 1))]
+        for j, car in enumerate(batch):
+            t = p0 + (p1 - p0) * (j + 1) / (len(batch) + 1)
+            add(t, car['name'], 'front/near', car['x'], car['y'] - 1.6, 'capture')
+
+    # 收尾：回场地中心
+    wrap = phases[-1]
+    w0, w1 = float(wrap.get('t0') or 0), float(wrap.get('t1') or 0)
+    add((w0 + w1) / 2, 'FLEET', 'wrap/home', 0.0, 0.0, 'transit')
+
+    steps.sort(key=lambda s: s['t'])
+    for idx, step in enumerate(steps):
+        step['i'] = idx + 1
+
+    return {
+        'source': 'fallback: coverage.slots + timeline.phases + acceptance.violations',
+        'note': '默认演示批次没有 GOTO 日志，这条航线由车位坐标与阶段时间轴重建，'
+                '仅用于展示随时间推进的飞行路线；接入实机批次后会自动换成日志复算结果。',
+        'area': {'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1},
+        'cars': cars,
+        'steps': steps,
+    }
+
+
 @router.get('/health')
 async def plate_health() -> dict[str, object]:
     """只报告服务是否在跑，不去加载模型——加模型可能耗时数秒。"""
@@ -340,6 +478,10 @@ async def plate_path() -> dict[str, object] | JSONResponse:
     """
     payload = _load_json_file(PATH_PATH)
     if payload is None:
+        # 没有实机 GOTO 日志时用仓库自带批次现场重建一条示意航线，
+        # 让第四格仍有随时间推进的内容，前端也不再连打两个 404。
+        payload = _fallback_path()
+    if payload is None:
         return JSONResponse(status_code=404, content={
             'code': 404, 'message': '未找到路径数据', 'data': {'available': False}})
     return {'code': 200, 'message': 'success', 'data': payload}
@@ -359,8 +501,14 @@ async def plate_coverage() -> dict[str, object] | JSONResponse:
 
     if payload.get('image'):
         payload['image'] = _media_versioned(prefixed(str(payload['image'])))
-    # RViz 全流程录屏（2026-11-16 加）：同样要带内容戳，否则换批后浏览器放旧片
+    # RViz 全流程录屏（2026-11-16 加）：同样要带内容戳，否则换批后浏览器放旧片。
+    # 仓库自带批次没有这段元数据时回退到主回放视频，避免第 2、3 格空着。
     rviz = payload.get('rviz')
+    if not isinstance(rviz, dict):
+        fallback = _fallback_rviz()
+        if fallback is not None:
+            payload['rviz'] = fallback
+            rviz = fallback
     if isinstance(rviz, dict):
         for key in ('src', 'poster'):
             if rviz.get(key):

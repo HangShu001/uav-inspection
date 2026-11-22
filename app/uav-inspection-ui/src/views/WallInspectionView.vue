@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import WallLocationMap from '../components/wall/WallLocationMap.vue'
+import '../components/wall/wallWorkspace.css'
 import InspectionHeader from '../components/common/InspectionHeader.vue'
 import DetectionVideoFrame from '../components/common/DetectionVideoFrame.vue'
 import FloatingNotice from '../components/common/FloatingNotice.vue'
@@ -1196,6 +1197,8 @@ function drawDetections(captureWidth: number, captureHeight: number) {
 }
 
 onMounted(async () => {
+  // 与巡检工作台 / 历史任务共用整页视口锁定
+  document.body.classList.add('wall-workspace-active')
   loading.value = true
   await Promise.all([refreshHealth(), loadVideoTasks(), loadWallConfig()])
   const requested = tasks.value.find(task => task.id === route.query.task)
@@ -1206,6 +1209,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.body.classList.remove('wall-workspace-active')
   if (healthTimer) clearInterval(healthTimer)
   window.removeEventListener('resize', syncCanvasSize)
   stopVideo()
@@ -1214,11 +1218,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mobile-page min-h-screen overflow-x-hidden bg-slate-50 text-slate-800 xl:flex xl:h-screen xl:min-h-0 xl:flex-col xl:overflow-hidden">
+  <div class="mobile-page wall-tools-shell min-h-screen overflow-x-hidden bg-slate-50 text-slate-800 xl:flex xl:h-screen xl:min-h-0 xl:flex-col xl:overflow-hidden">
     <div class="w-full px-4 pt-4 md:px-5 xl:shrink-0">
       <InspectionHeader title="建筑外墙巡检" :task-name="currentTaskName" :online="backendOnline">
         <template #actions>
           <RouterLink to="/wall/replay" class="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700">返回历史任务</RouterLink>
+          <RouterLink to="/wall" class="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700">巡检工作台</RouterLink>
           <button
             class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             :disabled="!canPlay"
@@ -1515,7 +1520,7 @@ onUnmounted(() => {
                   <div class="mt-2 font-mono text-xs text-slate-600">{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</div>
                 </button>
               </div>
-              <div v-else class="mt-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">暂无可定位缺陷记录</div>
+              <div v-else class="mt-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">暂无可定位巡检记录</div>
             </div>
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"><div class="font-semibold">现场复核顺序</div><div class="mt-2">优先从记录最多的立面区域开始，随后复核面砖脱落点及其下方坠落影响区，再检查裂缝与渗水是否连续扩展。</div></div>
             <div class="text-xs leading-5 text-slate-400">地图点位来自对应字幕中的经纬度；检测日志同时保存视频时间、飞行高度和云台姿态，便于现场复核。</div>
