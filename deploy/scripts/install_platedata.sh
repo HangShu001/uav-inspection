@@ -81,11 +81,13 @@ if [ "$KEEP_BACKUP" = "1" ]; then
 fi
 
 # ---- 4. 拷进命名卷 ---------------------------------------------------------
-# 先建目录再 cp 内容：源用 /. 时目标必须是已存在的目录，
-# 否则会变成 /data/.../platedata/platedata 套一层。
+# 跳过 _bak_* 目录：那是工作站上换批时留的历史备份，拷进生产只会白占体积
+# （本批实测 platedata 182 MB，其中 media/_bak_20261121 一份就 77 MB）。
+# docker cp 没有排除选项，所以走 tar 管道；python:*-slim 自带 tar。
 sudo docker exec "$CID" mkdir -p "$REMOTE_DIR"
-sudo docker cp "$PKG/." "$CID:$REMOTE_DIR/"
-echo "[install] 已拷入 $REMOTE_DIR"
+tar -C "$PKG" --exclude='_bak_*' --exclude='*/_bak_*' -cf - . \
+  | sudo docker exec -i "$CID" tar -xf - -C "$REMOTE_DIR"
+echo "[install] 已拷入 $REMOTE_DIR（已跳过 _bak_* 备份目录）"
 
 # ---- 5. 重启让 DATA_DIR 重新解析 ------------------------------------------
 # DATA_DIR 在模块导入时定死，热更不生效，必须重启进程。
